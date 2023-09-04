@@ -6,5 +6,5 @@ A `.env` file must be placed in root-level directory, containing the following v
 TIMI-TTS-ROOT-DIR=""
 ```
 > **Please note**: Each variable value must be enclosed in ""
->
-> This projects is in WIP stage, further informations will be provided in future.
+
+## This projects is in WIP stage, further informations will be provided in future.
