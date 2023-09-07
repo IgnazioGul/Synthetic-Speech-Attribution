@@ -155,17 +155,19 @@ class SyntheticClassifier(pl.LightningModule):
     def on_test_batch_end(
             self, outputs, batch, batch_idx: int, dataloader_idx: int = 0
     ) -> None:
+
         self.outputs.append(outputs)
 
     def on_test_epoch_end(self):
         preds = torch.cat([tmp['preds'] for tmp in self.outputs]).cpu().numpy()
         probs = torch.cat([tmp['probs'] for tmp in self.outputs]).cpu().numpy()
         y_true = torch.cat([tmp['y_true'] for tmp in self.outputs]).tolist()
-        class_names = LABELS_MAP.keys()
-
+        all_class_names = LABELS_MAP.keys()
         cm = wandb.plot.confusion_matrix(
             y_true=y_true,
-            probs=probs)
+            probs=probs,
+            class_names=["gtts", "tacotron", "glowtts", "fastpitch"] if self.mode == "reduced" else all_class_names
+        )
         wandb.log({"confusion_matrix": cm})
 
         # wandb.sklearn.plot_confusion_matrix(y_true, preds, class_names)
