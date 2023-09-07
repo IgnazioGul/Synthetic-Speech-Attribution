@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
 
-from timi_tts_constants import LABELS_MAP, CSV_METADATA_HEADER
+from timi_tts_constants import LABELS_MAP, CSV_METADATA_HEADER, CLASS_KEY
 
 
 class TimiTtsUtils:
@@ -20,7 +20,7 @@ class TimiTtsUtils:
         """
         metadata = pd.read_csv(os.path.join(root_dir, metatada_file))
         plt.figure(figsize=(15, 6))
-        ax = sns.countplot(x=CSV_METADATA_HEADER[1], data=metadata)
+        ax = sns.countplot(x=CLASS_KEY, data=metadata)
         ax.bar_label(container=ax.containers[0], labels=LABELS_MAP.keys())
         plt.title("Count of records in each class for " + metatada_file)
         plt.xticks(rotation="vertical")
@@ -88,4 +88,4 @@ if __name__ == '__main__':
 
     load_dotenv()
     TimiTtsUtils.generate_timi_tts_labels(os.getenv("TIMI-TTS-ROOT-DIR"))
-    # TimiTtsUtils.plot_classes_distribution(os.getenv("TIMI-TTS-ROOT-DIR"), "all.csv")
+    # TimiTtsUtils.plot_classes_distribution(os.getenv("TIMI-TTS-ROOT-DIR"), "clean.csv")
