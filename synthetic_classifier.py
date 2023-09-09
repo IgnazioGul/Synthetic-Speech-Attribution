@@ -4,16 +4,19 @@ import lightning.pytorch as pl
 import torch
 import torchmetrics
 from dotenv import load_dotenv
+from matplotlib import pyplot as plt
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 from pytorch_lightning.loggers import WandbLogger
 from torch import nn
 from torch.optim import Adam, SGD
 from torch.utils.data import DataLoader
-from torchvision import models
+from torchvision import models, utils
 from typing_extensions import Literal
 
 import wandb
-from LoadTimiDataset import LoadTimiDataset
+from load_timi_dataset import LoadTimiDataset
+from models.attention_vgg16 import AttentionVgg16
+from models.blocks.attention_block import visualize_attention
 from utils.timi_tts_constants import AUDIO_KEY, CLASS_KEY, LABELS_MAP
 
 
@@ -21,7 +24,7 @@ class SyntheticClassifier(pl.LightningModule):
     global_step = 0
 
     def __init__(self, pretrained: bool, metadata_file: Literal["clean.csv", "dtw.csv", "aug.csv", "aug_dtw.csv"],
-                 model_name: Literal["resnet18, resnet34,resnet50"],
+                 model_name: Literal["resnet18", "resnet34", "resnet50", "attVgg16"],
                  lr: float = 0.0005,
                  decay=0.00002, momentum=0.99, batch_size=128,
                  optimizer="SGD",
@@ -62,6 +65,8 @@ class SyntheticClassifier(pl.LightningModule):
             backbone = models.resnet50(pretrained=self.pretrained)
             backbone.fc = nn.Linear(2048, self.n_classes)
             backbone.conv1 = nn.Conv2d(1, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False)
+        elif self.model_name == "attVgg16":
+            backbone = AttentionVgg16(num_classes=self.n_classes, normalize_attn=True)
         else:
             raise Exception("Unsupported model ", self.mode)
         return backbone
@@ -84,19 +89,25 @@ class SyntheticClassifier(pl.LightningModule):
         if stage == "fit" or stage is None:
             self.training_set = LoadTimiDataset(base_path=os.getenv("TIMI-TTS-ROOT-DIR"),
                                                 metadata_file_path=self.metadata_file, partition="training",
+                                                model_name="attVgg16",
                                                 transform=True, mode=self.mode)
             self.validation_test = LoadTimiDataset(base_path=os.getenv("TIMI-TTS-ROOT-DIR"),
                                                    metadata_file_path=self.metadata_file, partition="validation",
+                                                   model_name="attVgg16",
                                                    transform=True, mode=self.mode)
         if stage == "test" or stage is None:
             self.test_set = LoadTimiDataset(base_path=os.getenv("TIMI-TTS-ROOT-DIR"),
                                             metadata_file_path=self.metadata_file, partition="test",
+                                            model_name="attVgg16",
                                             transform=True, mode=self.mode)
 
-    def _get_preds_loss_accuracy(self, batch):
+    def _get_preds_loss_accuracy(self, batch, batch_idx):
         audios = batch[AUDIO_KEY]
         labels = batch[CLASS_KEY]
-        logits = self.model(audios)
+        if self.model_name == "attVgg16":
+            logits, _, _ = self.model(audios)
+        else:
+            logits = self.model(audios)
         preds = torch.argmax(logits, dim=1)
         loss = self.loss_module(logits, labels)
         acc = torchmetrics.functional.accuracy(preds, labels, "multiclass",
@@ -104,6 +115,24 @@ class SyntheticClassifier(pl.LightningModule):
         f1 = torchmetrics.functional.f1_score(preds, labels, "multiclass",
                                               num_classes=self.n_classes)
 
+        if self.current_epoch == 1 and batch_idx == 10 and self.model_name == "attVgg16":
+            _, attFilter1, attFilter2 = self.model(audios[0:8])
+
+            I_train = utils.make_grid(audios[0:8], nrow=8, normalize=True,
+                                      scale_each=True)
+            orig = visualize_attention(I_train, attFilter1, up_factor=2, no_attention=True)
+            first = visualize_attention(I_train, attFilter1, up_factor=2, no_attention=False)
+            second = visualize_attention(I_train, attFilter2, up_factor=4, no_attention=False)
+
+            fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(10, 10))
+            ax1.imshow(orig)
+            ax2.imshow(first)
+            ax3.imshow(second)
+            ax1.title.set_text('Input Images')
+            ax2.title.set_text('pool-3 attention')
+            ax3.title.set_text('pool-4 attention')
+            plt.pause(0.001)
+            plt.savefig('vgg16_attentions.png')
         return preds, loss, acc, f1
 
     def _get_probs_preds_loss_accuracy(self, batch):
@@ -125,7 +154,7 @@ class SyntheticClassifier(pl.LightningModule):
         x = train_batch[AUDIO_KEY]
         n = x.shape[0]
         self.global_step += n
-        _, loss, acc, f1 = self._get_preds_loss_accuracy(train_batch)
+        _, loss, acc, f1 = self._get_preds_loss_accuracy(train_batch, batch_idx)
 
         self.log('train_acc', acc)
         self.log('train_loss', loss)
@@ -134,7 +163,7 @@ class SyntheticClassifier(pl.LightningModule):
         return loss
 
     def validation_step(self, val_batch, batch_idx):
-        preds, loss, acc, f1 = self._get_preds_loss_accuracy(val_batch)
+        preds, loss, acc, f1 = self._get_preds_loss_accuracy(val_batch, batch_idx)
 
         self.log('val_acc', acc)
         self.log('val_loss', loss)
@@ -207,7 +236,8 @@ if __name__ == '__main__':
     batch_size = 32
     mode = "reduced"
     metadata_file = "aug.csv"
-    model_name = "resnet50"
+    # model_name = "resnet50"
+    model_name = "attVgg16"
 
     epochs = 25
     infos = ""
@@ -232,7 +262,7 @@ if __name__ == '__main__':
         max_epochs=epochs,
         log_every_n_steps=1,
         accelerator="gpu" if isGpuEnabled else "cpu",
-        devices=1,
+        devices="auto",
         # max_time="00:08:00:00",
         callbacks=[early_stop_callback]
     )
