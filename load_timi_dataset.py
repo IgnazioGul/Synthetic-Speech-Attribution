@@ -15,28 +15,38 @@ class LoadTimiDataset(Dataset):
 
     def __init__(self, base_path: str, metadata_file_path: str, partition: Literal["training", "validation", "test"],
                  model_name: Literal["resnet18", "resnet34", "resnet50", "attVgg16"],
-                 mode: Literal["normal", "reduced"] = "normal", transform: bool = False):
+                 is_validation_enabled: bool = True,
+                 transform: bool = False):
+
         self.path = os.path.join(base_path, metadata_file_path)
         self.model_name = model_name
         data = pd.read_csv(self.path)
         np.random.seed(123)
         data = data.sample(frac=1, random_state=42)
 
-        split_indices = np.array([0.6, 0.8]) * len(data)
-        # split in 60%, 20%, 20%
-        left, middle, right = np.split(data, split_indices.astype(int))
-        if partition == "training":
-            # take 60% dataframe
-            self.audios_df = left
-        elif partition == "validation":
-            # take middle 20% of the dataframe
-            self.audios_df = middle
-        elif partition == "test":
-            # take end 20% of the  dataframe
-            self.audios_df = right
-
-        if mode == "reduced":
-            self.audios_df = self.audios_df.loc[(self.audios_df[CLASS_KEY] == 2) | (self.audios_df[CLASS_KEY] == 3)]
+        if is_validation_enabled:
+            split_indices = np.array([0.6, 0.8]) * len(data)
+            # split in 60%, 20%, 20%
+            left, middle, right = np.split(data, split_indices.astype(int))
+            if partition == "training":
+                # take 60% dataframe
+                self.audios_df = left
+            elif partition == "validation":
+                # take middle 20% of the dataframe
+                self.audios_df = middle
+            elif partition == "test":
+                # take end 20% of the  dataframe
+                self.audios_df = right
+        else:
+            percent_66 = int(0.66 * len(data))
+            # split in 66%, 33%
+            left, right = np.split(data, [percent_66])
+            if partition == "training":
+                # take 66% dataframe
+                self.audios_df = left
+            elif partition == "test":
+                # take end 33% of the  dataframe
+                self.audios_df = right
 
         self.transform = transform
 

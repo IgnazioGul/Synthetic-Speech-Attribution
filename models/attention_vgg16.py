@@ -7,9 +7,9 @@ from models.blocks.attention_block import AttentionBlock
 
 
 class AttentionVgg16(nn.Module):
-    def __init__(self, num_classes, normalize_attn=False, dropout=None, *args, **kwargs):
+    def __init__(self, num_classes, normalize_attn=False, dropout=None, pretrained=False, *args, **kwargs):
         super(AttentionVgg16, self).__init__()
-        net = models.vgg16_bn(pretrained=True)
+        net = models.vgg16_bn(pretrained=pretrained)
 
         # change img channels from 3 to 1
         self.conv_block0 = nn.Conv2d(1, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))

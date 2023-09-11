@@ -23,20 +23,23 @@ from utils.timi_tts_constants import AUDIO_KEY, CLASS_KEY, LABELS_MAP
 class SyntheticClassifier(pl.LightningModule):
     global_step = 0
 
-    def __init__(self, pretrained: bool, metadata_file: Literal["clean.csv", "dtw.csv", "aug.csv", "aug_dtw.csv"],
+    def __init__(self, pretrained: bool, metadata_file: Literal[
+        "clean.csv", "dtw.csv", "aug.csv", "aug_dtw.csv", "clean_reduced.csv", "dtw_reduced.csv", "aug_reduced.csv", "aug_dtw_reduced.csv"],
                  model_name: Literal["resnet18", "resnet34", "resnet50", "attVgg16"],
+                 is_validation_enabled: bool = True,
                  lr: float = 0.0005,
-                 decay=0.00002, momentum=0.99, batch_size=128,
-                 optimizer="SGD",
+                 decay: float = 0.00002, momentum: float = 0.99, batch_size: int = 128,
+                 optimizer: str = "SGD",
                  is_gpu_enabled: bool = False, mode: Literal["normal", "reduced"] = "normal"
                  ):
         super().__init__()
         self.mode = mode
         self.metadata_file = metadata_file
-        self.n_classes = 4 if self.mode == "reduced" else 12  # TODO add dyanamic num classes
+        self.n_classes = 2 if self.mode == "reduced" else 12  # TODO add dyanamic num classes
         self.model_name = model_name
+        self.is_validation_enabled = is_validation_enabled
         self.test_set = None
-        self.validation_test = None
+        self.validation_set = None
         self.training_set = None
         self.pretrained = pretrained
         self.lr = lr
@@ -66,7 +69,7 @@ class SyntheticClassifier(pl.LightningModule):
             backbone.fc = nn.Linear(2048, self.n_classes)
             backbone.conv1 = nn.Conv2d(1, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False)
         elif self.model_name == "attVgg16":
-            backbone = AttentionVgg16(num_classes=self.n_classes, normalize_attn=True)
+            backbone = AttentionVgg16(num_classes=self.n_classes, normalize_attn=True, pretrained=self.pretrained)
         else:
             raise Exception("Unsupported model ", self.mode)
         return backbone
@@ -90,16 +93,17 @@ class SyntheticClassifier(pl.LightningModule):
             self.training_set = LoadTimiDataset(base_path=os.getenv("TIMI-TTS-ROOT-DIR"),
                                                 metadata_file_path=self.metadata_file, partition="training",
                                                 model_name="attVgg16",
-                                                transform=True, mode=self.mode)
-            self.validation_test = LoadTimiDataset(base_path=os.getenv("TIMI-TTS-ROOT-DIR"),
-                                                   metadata_file_path=self.metadata_file, partition="validation",
-                                                   model_name="attVgg16",
-                                                   transform=True, mode=self.mode)
+                                                transform=True, is_validation_enabled=self.is_validation_enabled)
+            if self.is_validation_enabled:
+                self.validation_set = LoadTimiDataset(base_path=os.getenv("TIMI-TTS-ROOT-DIR"),
+                                                      metadata_file_path=self.metadata_file, partition="validation",
+                                                      model_name="attVgg16",
+                                                      transform=True)
         if stage == "test" or stage is None:
             self.test_set = LoadTimiDataset(base_path=os.getenv("TIMI-TTS-ROOT-DIR"),
                                             metadata_file_path=self.metadata_file, partition="test",
                                             model_name="attVgg16",
-                                            transform=True, mode=self.mode)
+                                            transform=True)
 
     def _get_preds_loss_accuracy(self, batch, batch_idx):
         audios = batch[AUDIO_KEY]
@@ -139,7 +143,10 @@ class SyntheticClassifier(pl.LightningModule):
         audios = batch[AUDIO_KEY]
         labels = batch[CLASS_KEY]
 
-        logits = self.model(audios)
+        if self.model_name == "attVgg16":
+            logits, _, _ = self.model(audios)
+        else:
+            logits = self.model(audios)
         probs = torch.softmax(logits, dim=1)
         preds = torch.argmax(logits, dim=1)
         loss = self.loss_module(logits, labels)
@@ -195,7 +202,7 @@ class SyntheticClassifier(pl.LightningModule):
         cm = wandb.plot.confusion_matrix(
             y_true=y_true,
             probs=probs,
-            class_names=["gtts", "tacotron", "glowtts", "fastpitch"] if self.mode == "reduced" else all_class_names
+            class_names=["glowtts", "fastpitch"] if self.mode == "reduced" else all_class_names
         )
         wandb.log({"confusion_matrix": cm})
 
@@ -215,7 +222,7 @@ class SyntheticClassifier(pl.LightningModule):
                           pin_memory=self.is_gpu_enabled)
 
     def val_dataloader(self):
-        return DataLoader(self.validation_test, batch_size=self.batch_size, shuffle=False, num_workers=4,
+        return DataLoader(self.validation_set, batch_size=self.batch_size, shuffle=False, num_workers=4,
                           pin_memory=self.is_gpu_enabled)
 
     def test_dataloader(self):
@@ -235,9 +242,10 @@ if __name__ == '__main__':
     decay = 0.00008
     batch_size = 32
     mode = "reduced"
-    metadata_file = "aug.csv"
+    metadata_file = "aug_reduced.csv"
     # model_name = "resnet50"
     model_name = "attVgg16"
+    isValidationEnabled = True
 
     epochs = 25
     infos = ""
@@ -248,14 +256,19 @@ if __name__ == '__main__':
                                      decay=decay,
                                      batch_size=batch_size,
                                      optimizer=optimizer,
-                                     is_gpu_enabled=isGpuEnabled, mode=mode)
+                                     is_gpu_enabled=isGpuEnabled, mode=mode, is_validation_enabled=isValidationEnabled)
 
     # Disable_stats=True or BSOD :()
     wandb.init(settings=wandb.Settings(
-        _disable_stats=True), project="test_relazione")
+        _disable_stats=True),
+        config={"epochs": epochs, "learning_rate": lr, "batch_size": batch_size, "optimizer": optimizer,
+                "isPretrained": isPretrained,
+                "decay": decay, "metadata_file": metadata_file, "model_name": model_name}, project="test_relazione")
+
     logger = WandbLogger(log_model=True)
 
-    early_stop_callback = _EarlyStopping(monitor="val_loss", mode="min", patience=3, min_delta=0.005)
+    early_stop_callback = _EarlyStopping(monitor="val_loss" if isValidationEnabled else "train_loss", mode="min",
+                                         patience=3, min_delta=0.005)
 
     trainer = pl.Trainer(
         logger=logger,
@@ -264,7 +277,8 @@ if __name__ == '__main__':
         accelerator="gpu" if isGpuEnabled else "cpu",
         devices="auto",
         # max_time="00:08:00:00",
-        callbacks=[early_stop_callback]
+        callbacks=[early_stop_callback],
+        limit_val_batches=1.0 if isValidationEnabled else 0.0
     )
     trainer.logger._log_graph = True
 

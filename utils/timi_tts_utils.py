@@ -45,6 +45,23 @@ class TimiTtsUtils:
         return files_map
 
     @staticmethod
+    def open_pandas_label_csv(root_dir: str):
+        """
+        Returns a dict containing the object of metadata csv files with pandas \n
+        :param root_dir: root dir of dataset
+        :param mode: open mode
+        :return: dict containing keys "CLEAN, "AUG", "DTW", "DTW_AUG, "ALL" and respective csv file objects
+        """
+        clean_labels_csv = pd.read_csv(os.path.join(root_dir, "clean.csv"))
+        aug_labels_csv = pd.read_csv(os.path.join(root_dir, "aug.csv"))
+        dtw_labels_csv = pd.read_csv(os.path.join(root_dir, "dtw.csv"))
+        dtw_aug_labels_csv = pd.read_csv(os.path.join(root_dir, "dtw_aug.csv"))
+        all_labels_csv = pd.read_csv(os.path.join(root_dir, "all.csv"))
+
+        return {"CLEAN": clean_labels_csv, "AUG": aug_labels_csv, "DTW": dtw_labels_csv,
+                "DTW_AUG": dtw_aug_labels_csv, "ALL": all_labels_csv}
+
+    @staticmethod
     def generate_timi_tts_labels(root_dir: str) -> None:
         """
         Generates csv metadata files containing [full_path,label] columns, for each category of data.\n
@@ -81,6 +98,39 @@ class TimiTtsUtils:
         for label_file in files_map.values():
             label_file.close()
         print("Added ", i, " files to label metadata csv")
+
+    @staticmethod
+    def generate_timi_tts_reduced_labels(root_dir: str):
+        """
+        Generates reduced (2 classes only) csv metadata files containing [full_path,label] columns, for each category of data.\n
+        The files are: all.csv, aug.csv, clean.csv, dtw.csv, dwt_aug,csv \n
+        :param root_dir: root dir of dataset
+        :return: None
+        """
+        i = 0
+        csv_files = TimiTtsUtils.open_pandas_label_csv(root_dir)
+        for csv_type, csv_file in csv_files.items():
+            new_filename = csv_type.lower() + "_reduced.csv"
+            reduced_csv = open(os.path.join(root_dir, new_filename), mode="w", newline="")
+            reduced_csv_w = writer(reduced_csv)
+            reduced_csv_w.writerow(CSV_METADATA_HEADER)
+
+            reduced_data_2 = csv_file.loc[csv_file[CLASS_KEY] == 2]
+            reduced_data_3 = csv_file.loc[csv_file[CLASS_KEY] == 3]
+            reduced_data_2[CLASS_KEY] = 0
+            reduced_data_3[CLASS_KEY] = 1
+
+            reduced_data = pd.concat([reduced_data_3, reduced_data_2], ignore_index=True)
+            reduced_data.to_csv(os.path.join(root_dir, new_filename), index=False)
+            # reduced_csv_w.writerows(reduced_data_2)
+            # reduced_csv_w.writerows(reduced_data_3)
+            i += len(reduced_data_2) + len(reduced_data_3)
+            reduced_csv.close()
+            print(
+                "Added in " + new_filename + " " + str(
+                    len(reduced_data_2)) + " files for class 2 (new class 0), and " + str(
+                    len(reduced_data_3)) + " files for class 3 (new class 1)")
+        print("Added " + str(i) + " files to reduced label metadata csv")
 
 
 if __name__ == '__main__':
