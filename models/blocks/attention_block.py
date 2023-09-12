@@ -1,4 +1,5 @@
 import cv2
+import librosa
 import numpy as np
 import torch
 from torch import nn, Tensor
@@ -39,12 +40,22 @@ class AttentionBlock(nn.Module):
         return a, output
 
 
+def print_original_spec(original_spec, fig, spec, n_rows, epoch):
+    for idx, el in enumerate(original_spec):
+        el = el.cpu().numpy()
+        ax0 = fig.add_subplot(spec[0, idx])
+      
+        img = librosa.display.specshow(el, sr=16000, x_axis='time', y_axis='mel', ax=ax0)
+        if idx == len(original_spec) - 1:
+            fig.colorbar(img, format='%+2.0f dB', ax=ax0)  # Aggiungi una barra dei colori con etichette in dB
+
+
 def visualize_attention(I_train: Tensor, a: Tensor, up_factor, no_attention=False):
     img = I_train.permute((1, 2, 0)).cpu().numpy()
     # compute the heatmap
     if up_factor > 1:
         a = F.interpolate(a, scale_factor=up_factor, mode='bilinear', align_corners=False)
-    attn = utils.make_grid(a, nrow=8, normalize=True, scale_each=True)
+    attn = utils.make_grid(a, nrow=8, normalize=True, scale_each=True, padding=2)
     attn = attn.permute((1, 2, 0)).mul(255).byte().cpu().numpy()
     attn = cv2.applyColorMap(attn, cv2.COLORMAP_JET)
     attn = cv2.cvtColor(attn, cv2.COLOR_BGR2RGB)
@@ -55,4 +66,25 @@ def visualize_attention(I_train: Tensor, a: Tensor, up_factor, no_attention=Fals
         return torch.from_numpy(img)
     else:
         vis = 0.6 * img + 0.4 * attn
-        return torch.from_numpy(vis)
+        vis = cv2.resize(vis, (vis.shape[1] * 3, vis.shape[0] * 2))
+        num_images = 8
+        padding_width = 30  # Adjust as needed
+
+        vis = add_padding_to_grid(vis, num_images, padding_width)
+
+        # Ensure the values are within the expected range
+        vis = np.clip(vis, 0, 255).astype(np.uint8)
+        vis = np.flipud(vis)
+        return torch.from_numpy(vis.copy())
+
+
+def add_padding_to_grid(grid, num_images, padding_width):
+    img_w = grid.shape[1] // num_images
+    # add padding
+    padded_row_w = num_images * (img_w + padding_width - 1)  # -1 because first image does not have margin before
+    padded_array = np.ones((grid.shape[0], padded_row_w, 3), dtype=np.uint8) * 255
+    for i in range(num_images):
+        img = grid[:, i * img_w: (i + 1) * img_w, :]
+        start_col = i * (img_w + padding_width)
+        padded_array[:, start_col: start_col + img_w, :] = img * 255
+    return padded_array

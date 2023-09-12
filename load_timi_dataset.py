@@ -59,7 +59,7 @@ class LoadTimiDataset(Dataset):
         spec_img = AudioUtils.spec_to_image(spec)
         if self.model_name == "attVgg16":
             spec_img = cv2.resize(spec_img, (224, 224))
-        return {AUDIO_KEY: spec_img[np.newaxis, ...], CLASS_KEY: audio_class}
+        return {AUDIO_KEY: spec_img[np.newaxis, ...], CLASS_KEY: audio_class, "original": spec}
 
     def __len__(self):
         return self.audios_df.index.size

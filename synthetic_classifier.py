@@ -16,7 +16,7 @@ from typing_extensions import Literal
 import wandb
 from load_timi_dataset import LoadTimiDataset
 from models.attention_vgg16 import AttentionVgg16
-from models.blocks.attention_block import visualize_attention
+from models.blocks.attention_block import visualize_attention, print_original_spec
 from utils.timi_tts_constants import AUDIO_KEY, CLASS_KEY, LABELS_MAP
 
 
@@ -119,24 +119,35 @@ class SyntheticClassifier(pl.LightningModule):
         f1 = torchmetrics.functional.f1_score(preds, labels, "multiclass",
                                               num_classes=self.n_classes)
 
-        if self.current_epoch == 1 and batch_idx == 10 and self.model_name == "attVgg16":
+        if batch_idx == self.trainer.num_training_batches - 1 and self.model_name == "attVgg16":
             _, attFilter1, attFilter2 = self.model(audios[0:8])
 
-            I_train = utils.make_grid(audios[0:8], nrow=8, normalize=True,
+            I_train = utils.make_grid(audios[0:8], nrow=8, padding=2, normalize=True,
                                       scale_each=True)
-            orig = visualize_attention(I_train, attFilter1, up_factor=2, no_attention=True)
+
             first = visualize_attention(I_train, attFilter1, up_factor=2, no_attention=False)
             second = visualize_attention(I_train, attFilter2, up_factor=4, no_attention=False)
 
-            fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(10, 10))
-            ax1.imshow(orig)
+            orig_spec = batch["original"][0:8]
+            n_rows = 1
+            fig = plt.figure(figsize=(30, 10), layout="constrained")
+            spec = fig.add_gridspec(3, 8)
+
+            ax2 = fig.add_subplot(spec[1, :])
+            ax3 = fig.add_subplot(spec[2, :])
+
+            print_original_spec(orig_spec, fig, spec, n_rows, self.current_epoch)
+
             ax2.imshow(first)
+            ax2.title.set_text("pool-3 attention")
+
             ax3.imshow(second)
-            ax1.title.set_text('Input Images')
-            ax2.title.set_text('pool-3 attention')
-            ax3.title.set_text('pool-4 attention')
-            plt.pause(0.001)
-            plt.savefig('vgg16_attentions.png')
+            ax3.title.set_text("pool-4 attention")
+
+            plt.savefig("attentions_epoch" + str(self.current_epoch) + '_vgg16_attentions.png')
+            plt.show()
+            plt.draw()
+
         return preds, loss, acc, f1
 
     def _get_probs_preds_loss_accuracy(self, batch):
