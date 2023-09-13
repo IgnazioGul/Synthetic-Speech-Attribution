@@ -7,18 +7,38 @@ from models.blocks.attention_block import AttentionBlock
 
 
 class AttentionVgg16(nn.Module):
-    def __init__(self, num_classes, normalize_attn=False, dropout=None, pretrained=False, *args, **kwargs):
+    def __init__(self, num_classes, normalize_attn=False, dropout=None, pretrained=False, freezed: bool = True, *args,
+                 **kwargs):
         super(AttentionVgg16, self).__init__()
         net = models.vgg16_bn(pretrained=pretrained)
 
-        # change img channels from 3 to 1
+        # Create a new first layer with 3 input channels
         self.conv_block0 = nn.Conv2d(1, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        print(self.conv_block0.weight.data.shape, net.features[0].weight.data.clone().shape)
+        # Initialize the new first layer with the pretrained weights from the original first layer
+        self.conv_block0.weight.data = net.features[0].weight.data[:, 0:1, :, :].clone().sum(dim=1,
+                                                                                             keepdim=True) / 3
+
+        # Copy the batch normalization parameters from the original first layer
+        self.conv_block0.bias.data = net.features[0].bias.data.clone()
+        # self.conv_block0.weight.data[:, 1:, :, :] = 0  # Set weights for additional channels to zero
+
+        # change img channels from 3 to 1
+        # self.conv_block0 = nn.Conv2d(1, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
 
         self.conv_block1 = nn.Sequential(*list(net.features.children())[1:6])
         self.conv_block2 = nn.Sequential(*list(net.features.children())[7:13])
         self.conv_block3 = nn.Sequential(*list(net.features.children())[14:23])
         self.conv_block4 = nn.Sequential(*list(net.features.children())[24:33])
         self.conv_block5 = nn.Sequential(*list(net.features.children())[34:43])
+        if freezed:
+            self.set_require_grad(self.conv_block0, False)
+            self.set_require_grad(self.conv_block1, False)
+            self.set_require_grad(self.conv_block2, False)
+            self.set_require_grad(self.conv_block3, False)
+            self.set_require_grad(self.conv_block4, False)
+            self.set_require_grad(self.conv_block5, False)
+
         self.pool = nn.AvgPool2d(7, stride=1)
         self.dpt = None
         if dropout is not None:
@@ -45,6 +65,10 @@ class AttentionVgg16(nn.Module):
             elif isinstance(m, nn.Linear):
                 nn.init.normal_(m.weight, 0., 0.01)
                 nn.init.constant_(m.bias, 0.)
+
+    def set_require_grad(self, layer, val: bool = False):
+        for param in layer.parameters():
+            param.requires_grad = val
 
     def forward(self, x):
         block0 = self.conv_block0(x)

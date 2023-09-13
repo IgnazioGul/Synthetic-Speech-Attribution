@@ -8,7 +8,7 @@ from matplotlib import pyplot as plt
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 from pytorch_lightning.loggers import WandbLogger
 from torch import nn
-from torch.optim import Adam, SGD
+from torch.optim import Adam, AdamW, SGD
 from torch.utils.data import DataLoader
 from torchvision import models, utils
 from typing_extensions import Literal
@@ -30,11 +30,12 @@ class SyntheticClassifier(pl.LightningModule):
                  lr: float = 0.0005,
                  decay: float = 0.00002, momentum: float = 0.99, batch_size: int = 128,
                  optimizer: str = "SGD",
-                 is_gpu_enabled: bool = False, mode: Literal["normal", "reduced"] = "normal"
+                 is_gpu_enabled: bool = False, mode: Literal["normal", "reduced"] = "normal", freezed: bool = False
                  ):
         super().__init__()
         self.mode = mode
         self.metadata_file = metadata_file
+        self.freezed = freezed
         self.n_classes = 2 if self.mode == "reduced" else 12  # TODO add dyanamic num classes
         self.model_name = model_name
         self.is_validation_enabled = is_validation_enabled
@@ -69,7 +70,8 @@ class SyntheticClassifier(pl.LightningModule):
             backbone.fc = nn.Linear(2048, self.n_classes)
             backbone.conv1 = nn.Conv2d(1, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False)
         elif self.model_name == "attVgg16":
-            backbone = AttentionVgg16(num_classes=self.n_classes, normalize_attn=True, pretrained=self.pretrained)
+            backbone = AttentionVgg16(num_classes=self.n_classes, normalize_attn=True, pretrained=self.pretrained,
+                                      freezed=self.freezed)
         else:
             raise Exception("Unsupported model ", self.mode)
         return backbone
@@ -78,6 +80,9 @@ class SyntheticClassifier(pl.LightningModule):
         if self.optimizer == "Adam":
             optimizer = Adam(self.model.parameters(),
                              lr=self.lr, weight_decay=self.decay)
+        elif self.optimizer == "AdamW":
+            optimizer = AdamW(self.model.parameters(),
+                              lr=self.lr, weight_decay=self.decay)
         elif self.optimizer == "SGD":
             optimizer = SGD(self.model.parameters(), self.lr,
                             self.momentum, weight_decay=self.decay)
