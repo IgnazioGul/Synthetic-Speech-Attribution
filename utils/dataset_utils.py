@@ -60,13 +60,13 @@ def map_passt_spec_printable(original_spec_array):
 
 
 def load_specific_classes(dataloader: DataLoader, target_class: int, n: int):
-    '''
+    """
     Filters dataloader for given target class and return the first n samples
     :param dataloader:
     :param target_class:
     :param n:
     :return: dictionary with n samples and same format as dataloader
-    '''
+    """
     data_audios = []
     data_classes = []
     data_specs = []
@@ -94,14 +94,14 @@ def load_specific_classes(dataloader: DataLoader, target_class: int, n: int):
 
 
 def extract_dict_vals(i: int, dataset: Dataset, dataset_waveform: Dataset, is_target_attack: bool):
-    '''
+    """
     Extract dictionary values for two different formats, based on is_target_attack value
     :param i: index of the sample in the dataset
     :param dataset:
     :param dataset_waveform:
     :param is_target_attack:
     :return: audio, spec, audio_waveform, audio_class
-    '''
+    """
     if is_target_attack:
         audio = dataset[AUDIO_KEY][i]
         spec = dataset["original"][i].numpy().astype(np.float32)
