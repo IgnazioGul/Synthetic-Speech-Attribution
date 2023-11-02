@@ -11,16 +11,21 @@ from matplotlib import pyplot as plt
 class AudioUtils:
 
     @staticmethod
-    def get_mel_spect(audio: np.ndarray, sr: int, n_mels: int = 128):
+    def get_mel_spect(audio: np.ndarray, sr: int, n_mels: int = 128, model_name="attVgg16"):
         """
         Returns mel spectrogram in Db scale of input audio \n
         :param audio: np.ndarray audio
         :param sr: sampling rate
         :param n_mels: number of Mel bands to generate
+        :param model_name:
         :return: spectrogram: numpy.ndarray
         """
-        # Compute the Mel spectrogram
-        mel_spec = librosa.feature.melspectrogram(y=audio, sr=sr, n_mels=n_mels)
+        if model_name == "passt":
+            mel_spec = librosa.feature.melspectrogram(y=audio, sr=sr, n_mels=n_mels, win_length=800, hop_length=320,
+                                                      n_fft=1024, htk=False, fmax=sr / 2)
+        else:
+            mel_spec = librosa.feature.melspectrogram(y=audio, sr=sr, n_mels=n_mels, fmax=sr / 2)
+
         # convert the power spectrogram to dB scale
         mel_spec_db = librosa.power_to_db(mel_spec, ref=np.max)
 

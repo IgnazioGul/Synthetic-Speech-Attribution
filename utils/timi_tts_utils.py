@@ -137,5 +137,6 @@ if __name__ == '__main__':
     from dotenv import load_dotenv
 
     load_dotenv()
-    TimiTtsUtils.generate_timi_tts_labels(os.getenv("TIMI-TTS-ROOT-DIR"))
+    # TimiTtsUtils.generate_timi_tts_labels(os.getenv("TIMI-TTS-ROOT-DIR"))
+    TimiTtsUtils.generate_timi_tts_reduced_labels(os.getenv("TIMI-TTS-ROOT-DIR"))
     # TimiTtsUtils.plot_classes_distribution(os.getenv("TIMI-TTS-ROOT-DIR"), "clean.csv")

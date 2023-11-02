@@ -12,11 +12,11 @@ def _set_seed():
 
 
 def _get_spec(audio_waveform: np.ndarray):
-    '''
+    """
     Returns spectrogram ndarray in magnitude and angle
     :param audio_waveform:
     :return: magnitude, angle
-    '''
+    """
     n_fft = 1024
     hop_length = 320
     win_length = 800
@@ -28,12 +28,12 @@ def _get_spec(audio_waveform: np.ndarray):
 
 
 def _get_audio_from_spec(spec: np.ndarray, angle: np.float64):
-    '''
+    """
     Converts spectrogram back to an audio waveform
     :param spec: spcetrogram ndarray
     :param angle: angle of the spectrogram
     :return: audio waveform as ndarray
-    '''
+    """
     n_fft = 1024
     hop_length = 320
     win_length = 800
@@ -41,13 +41,13 @@ def _get_audio_from_spec(spec: np.ndarray, angle: np.float64):
 
 
 def apply_pitch_shift(audio_waveform: np.ndarray, pitch_shift_semitones: float, sr: int = 16000):
-    '''
+    """
     Applies pitch shift filter of given semitones
     :param audio_waveform:
     :param pitch_shift_semitones:
     :param sr:
     :return:
-    '''
+    """
     _set_seed()
     tfm = sox.Transformer()
     tfm.pitch(pitch_shift_semitones)
@@ -55,13 +55,13 @@ def apply_pitch_shift(audio_waveform: np.ndarray, pitch_shift_semitones: float, 
 
 
 def apply_time_stretch(audio_waveform: np.ndarray, time_rate: float, sr: int = 16000):
-    '''
+    """
     Applies time shift of given rate
     :param audio_waveform:
     :param time_rate: ratio of the new speed to the old speed
     :param sr:
     :return:
-    '''
+    """
     _set_seed()
     tfm = sox.Transformer()
     tfm.speed(factor=time_rate)
@@ -69,12 +69,12 @@ def apply_time_stretch(audio_waveform: np.ndarray, time_rate: float, sr: int = 1
 
 
 def apply_noise(audio_waveform: np.ndarray, ampl: float):
-    '''
+    """
     Add gaussian noise to the waveform
     :param audio_waveform:
     :param ampl: amplitude of the noise introduced
     :return: noisy audio waveform
-    '''
+    """
     _set_seed()
     noise = ampl * np.random.randn(len(audio_waveform))
     return audio_waveform + noise
@@ -82,7 +82,7 @@ def apply_noise(audio_waveform: np.ndarray, ampl: float):
 
 def apply_band_noise(audio_waveform: np.ndarray, ampl: float, low_cutoff: int = 1, high_cutoff: int = 512,
                      sr: int = 16000):
-    '''
+    """
     Applies a noise filter within a given frequencies band
     :param audio_waveform:
     :param ampl:
@@ -90,7 +90,7 @@ def apply_band_noise(audio_waveform: np.ndarray, ampl: float, low_cutoff: int = 
     :param high_cutoff:
     :param sr:
     :return: noisy audio waveform
-    '''
+    """
     noise_length = len(audio_waveform)
     noise = ampl * np.random.randn(noise_length)
     # Design a bandpass Butterworth filter
@@ -106,7 +106,7 @@ def apply_band_noise(audio_waveform: np.ndarray, ampl: float, low_cutoff: int = 
 
 
 def apply_partial_noise(audio_waveform: np.ndarray, ampl: float, start_s: float, duration_s: float, sr=16000):
-    '''
+    """
     Applies a noise filter within a given time range of the audio
     :param audio_waveform:
     :param ampl:
@@ -114,7 +114,7 @@ def apply_partial_noise(audio_waveform: np.ndarray, ampl: float, start_s: float,
     :param duration_s:
     :param sr:
     :return: noisy audio waveform
-    '''
+    """
     _set_seed()
     samples_to_jump = int(start_s * sr)
     samples_to_noise = int(sr * duration_s)
@@ -125,29 +125,29 @@ def apply_partial_noise(audio_waveform: np.ndarray, ampl: float, start_s: float,
 
 
 def apply_high_pass(audio_waveform: np.ndarray, sr: int, cutoff_frequency: int):
-    '''
+    """
     Applies a high pass frequencies filter
     :param audio_waveform:
     :param sr:
     :param cutoff_frequency:
     :return: resulting filtered audio waveform
-    '''
+    """
     return band_pass(audio_waveform, sr, cutoff_frequency, "high")
 
 
 def apply_low_pass(audio_waveform: np.ndarray, sr: int, cutoff_frequency: int):
-    '''
+    """
     Applies a low pass frequencies filter
     :param audio_waveform:
     :param sr:
     :param cutoff_frequency:
     :return: resulting filtered audio waveform
-    '''
+    """
     return band_pass(audio_waveform, sr, cutoff_frequency, "low")
 
 
 def apply_band_stop(audio_waveform: np.ndarray, sr: int, center_frequency: int, bandwidth: int, order=4):
-    '''
+    """
     Applies a band stop frequencies filter
     :param audio_waveform:
     :param sr:
@@ -155,7 +155,7 @@ def apply_band_stop(audio_waveform: np.ndarray, sr: int, center_frequency: int, 
     :param bandwidth:
     :param order: order of the filter
     :return: resulting filtered audio waveform
-    '''
+    """
     nyquist_frequency = 0.5 * sr
     low_cutoff = (center_frequency - 0.5 * bandwidth) / nyquist_frequency
     high_cutoff = (center_frequency + 0.5 * bandwidth) / nyquist_frequency
@@ -167,7 +167,7 @@ def apply_band_stop(audio_waveform: np.ndarray, sr: int, center_frequency: int, 
 
 
 def band_pass(audio_waveform: np.ndarray, sr: int, cutoff_frequency: int, btype: str):
-    '''
+    """
     Applies a generic band pass frequencies filter
     :param btype:
     :param audio_waveform:
@@ -175,7 +175,7 @@ def band_pass(audio_waveform: np.ndarray, sr: int, cutoff_frequency: int, btype:
     :param cutoff_frequency:
     :param btype: the type of filter.  {'lowpass', 'highpass', 'bandpass', 'bandstop'}
     :return: resulting filtered audio waveform
-    '''
+    """
     _set_seed()
 
     # Design a high-pass Butterworth filter
@@ -190,14 +190,14 @@ def band_pass(audio_waveform: np.ndarray, sr: int, cutoff_frequency: int, btype:
 
 def temporal_ampl_low_pass(audio_waveform: np.ndarray, sr: int = 16000, low_pass_duration_s: float = 1,
                            threshold_dB: int = -40):
-    '''
+    """
     Applies a low pass of the amplitudes (dB) within a given time range of the audio
     :param audio_waveform:
     :param sr:
     :param low_pass_duration_s:
     :param threshold_dB:
     :return: resulting filtered audio waveform
-    '''
+    """
     magnitude, angle = _get_spec(audio_waveform)
     aug_magn = np.copy(magnitude)
     min_magn = np.min(magnitude)
@@ -229,12 +229,12 @@ def temporal_ampl_low_pass(audio_waveform: np.ndarray, sr: int = 16000, low_pass
 
 
 def _spot_harmonic_content_indexes(spectrogram: np.ndarray, threshold_dB: int = -55):
-    '''
+    """
     Helper to spot the beginning of the harmonic content within a spectrogram
     :param spectrogram:
     :param threshold_dB:
     :return: start_index,end_index of the samples that contains harmonic content
-    '''
+    """
     # mean across time bins
     mean_power = np.mean(spectrogram, axis=0)
 
@@ -248,27 +248,27 @@ def _spot_harmonic_content_indexes(spectrogram: np.ndarray, threshold_dB: int = 
 
 
 def apply_time_shift(audio_waveform: np.ndarray, sr: int, time_shift_s: float):
-    '''
+    """
     Applies a time shift to the audio waveform of given seconds
     :param audio_waveform:
     :param sr:
     :param time_shift_s:
     :return: shifted audio
-    '''
+    """
     samples_to_shift = int(sr * time_shift_s)
     shifted_audio = audio_waveform[:len(audio_waveform) - samples_to_shift]
     return np.pad(shifted_audio, (samples_to_shift, 0), 'constant')
 
 
 def apply_amplitude_low_pass(audio_waveform: np.ndarray, sr, min_cutoff_db: int, max_cutoff_db: int):
-    '''
+    """
     Applies a low pass of the amplitudes (dB) within a given range, in the entire duration of the audio
     :param audio_waveform:
     :param sr:
     :param min_cutoff_db:
     :param max_cutoff_db:
     :return: resulting filtered audio waveform
-    '''
+    """
     magnitude, angle = _get_spec(audio_waveform)
 
     magn_db = librosa.amplitude_to_db(magnitude, ref=np.max)
@@ -288,12 +288,12 @@ def apply_amplitude_low_pass(audio_waveform: np.ndarray, sr, min_cutoff_db: int,
 
 
 def get_magnitude_for_target_db(ampl_max: float, target_db: int = -10):
-    '''
+    """
     Computes the magnitude of given dB for a given audio waveform
     :param ampl_max: max magnitude of the waveform
     :param target_db:
     :return: target magnitude
-    '''
+    """
     if target_db <= -80:
         target_db = -80
     return ampl_max * 10 ** (target_db / 20)
@@ -304,7 +304,7 @@ def increment_variance(audio_waveform: np.ndarray,
                        db_alteration: int = -15,
                        db_threshold: int = 20,
                        mode: Literal["low", "high"] = "low"):
-    '''
+    """
     Implements the increment_variance attack described in the thesis
     :param audio_waveform:
     :param region_size: window size of the sliding window
@@ -312,7 +312,7 @@ def increment_variance(audio_waveform: np.ndarray,
     :param db_threshold: threshold to select windows
     :param mode: high to select windows above the threshold, low otherwise
     :return: resulting filtered audio waveform
-    '''
+    """
     n_fft = 512
     hop_length = 256
     original_spectrogram = librosa.stft(audio_waveform, n_fft=n_fft,
@@ -366,7 +366,7 @@ def increment_variance(audio_waveform: np.ndarray,
 
 def increment_variance_2(audio_waveform, region_size: tuple[int, int] = (3, 3), db_alteration: float = -15,
                          variance_threshold: float = 0.05, mode: Literal["low", "high"] = "low", spec_fraction_end=1):
-    '''
+    """
     Implements the increment_variance_v2 attack described in the thesis
     :param audio_waveform:
     :param region_size: window size of the sliding window
@@ -375,7 +375,7 @@ def increment_variance_2(audio_waveform, region_size: tuple[int, int] = (3, 3), 
     :param mode: high to select windows above the threshold, low otherwise
     :param spec_fraction_end: fraction of the spectrogram to attack. Use 1 for entire spectrogram
     :return: resulting filtered audio waveform
-    '''
+    """
     n_fft = 512
     hop_length = 256
     original_spectrogram = librosa.stft(audio_waveform, n_fft=n_fft, hop_length=hop_length)
@@ -418,12 +418,12 @@ def increment_variance_2(audio_waveform, region_size: tuple[int, int] = (3, 3), 
 
 
 def introduce_entropy(audio_waveform: np.ndarray, sr: int = 16000):
-    '''
+    """
    Implements the introduce_entropy attack described in the thesis
    :param audio_waveform:
    :param sr:
    :return: resulting filtered audio waveform
-   '''
+   """
     aug_audio_waveform = apply_high_pass(audio_waveform, sr, 700)
     aug_audio_waveform = increment_variance_2(aug_audio_waveform, (1, 4), 40, 0.01, mode="low")
     aug_audio_waveform = apply_band_noise(aug_audio_waveform, 0.001, low_cutoff=30, high_cutoff=600, sr=sr)
@@ -431,11 +431,11 @@ def introduce_entropy(audio_waveform: np.ndarray, sr: int = 16000):
 
 
 def test_sft(audio_waveform: np.ndarray):
-    '''
+    """
     Tests the conversion from audio to spectrogram ad back to audio, to ensure no quality is lost
     :param audio_waveform:
     :return:
-    '''
+    """
     magnitude, angle = _get_spec(audio_waveform)
 
     return _get_audio_from_spec(magnitude, angle)
