@@ -115,8 +115,8 @@ class TimiTtsUtils:
             reduced_csv_w = writer(reduced_csv)
             reduced_csv_w.writerow(CSV_METADATA_HEADER)
 
-            reduced_data_2 = csv_file.loc[csv_file[CLASS_KEY] == 2]
-            reduced_data_3 = csv_file.loc[csv_file[CLASS_KEY] == 3]
+            reduced_data_2 = csv_file.loc[csv_file[CLASS_KEY] == 2].copy()
+            reduced_data_3 = csv_file.loc[csv_file[CLASS_KEY] == 3].copy()
             reduced_data_2[CLASS_KEY] = 0
             reduced_data_3[CLASS_KEY] = 1
 
@@ -137,6 +137,6 @@ if __name__ == '__main__':
     from dotenv import load_dotenv
 
     load_dotenv()
-    # TimiTtsUtils.generate_timi_tts_labels(os.getenv("TIMI-TTS-ROOT-DIR"))
+    TimiTtsUtils.generate_timi_tts_labels(os.getenv("TIMI-TTS-ROOT-DIR"))
     TimiTtsUtils.generate_timi_tts_reduced_labels(os.getenv("TIMI-TTS-ROOT-DIR"))
     # TimiTtsUtils.plot_classes_distribution(os.getenv("TIMI-TTS-ROOT-DIR"), "clean.csv")
