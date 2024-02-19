@@ -1,5 +1,3 @@
-import random
-
 import librosa
 import numpy as np
 import sox
@@ -439,3 +437,23 @@ def test_sft(audio_waveform: np.ndarray):
     magnitude, angle = _get_spec(audio_waveform)
 
     return _get_audio_from_spec(magnitude, angle)
+
+
+def asv19_attack_class_based(audio_waveform: np.ndarray, audio_class: int, region_size: tuple[int, int] = (2, 1),
+                             db_alteration: int = 40,
+                             variance_threshold: float = 0.1, sr: int = 16000):
+    """
+    Implements the ASV19 attack described in the thesis, by applying best attacks ona  per class basis.
+    :param audio_waveform:
+    :param audio_class:
+    :param region_size: window size of the sliding window
+    :param db_alteration: db alteration of the selected windows
+    :param variance_threshold: threshold to select windows
+    :param sr: sample rate
+    """
+    if audio_class == 1 or audio_class == 2:
+        return increment_variance(audio_waveform, region_size, db_alteration)
+    elif audio_class == 5:
+        return introduce_entropy(audio_waveform, sr)
+    else:
+        return increment_variance_2(audio_waveform, region_size, db_alteration, variance_threshold)
