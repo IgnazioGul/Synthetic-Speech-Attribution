@@ -4,6 +4,7 @@ This project builds up a Neural network approach on synthetic speech attribution
 A `.env` file must be placed in root-level directory, containing the following variables:
 ```
 TIMI-TTS-ROOT-DIR=""
+ASV-19-ROOT-DIR=""
 ```
 > **Please note**: Each variable value must be enclosed in ""
 
