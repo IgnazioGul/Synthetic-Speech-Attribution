@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 from torch.utils.data import DataLoader, Dataset
 from typing_extensions import Literal
 
-from utils.timi_tts_constants import AUDIO_KEY, CLASS_KEY
+from utils.timi_tts_constants import AUDIO_KEY, CLASS_KEY, ORIGINAL_SPEC_KEY
 
 load_dotenv()
 asv19_checkpoints = {
@@ -73,7 +73,7 @@ def load_specific_classes(dataloader: DataLoader, target_class: int, n: int):
     for batch in dataloader:
         audios = batch[AUDIO_KEY]
         classes = batch[CLASS_KEY]
-        specs = batch["original"]
+        specs = batch[ORIGINAL_SPEC_KEY]
 
         els = [value for index, value in enumerate(audios) if classes[index] == target_class]
         els_specs = [value for index, value in enumerate(specs) if classes[index] == target_class]
@@ -90,7 +90,7 @@ def load_specific_classes(dataloader: DataLoader, target_class: int, n: int):
     data_audios = torch.stack(data_audios)
     data_specs = torch.stack(data_specs)
     data_classes = torch.tensor(data_classes)
-    return {AUDIO_KEY: data_audios, CLASS_KEY: data_classes, "original": data_specs}
+    return {AUDIO_KEY: data_audios, CLASS_KEY: data_classes, ORIGINAL_SPEC_KEY: data_specs}
 
 
 def extract_dict_vals(i: int, dataset: Dataset, dataset_waveform: Dataset, is_target_attack: bool):
@@ -104,15 +104,13 @@ def extract_dict_vals(i: int, dataset: Dataset, dataset_waveform: Dataset, is_ta
     """
     if is_target_attack:
         audio = dataset[AUDIO_KEY][i]
-        spec = dataset["original"][i].numpy().astype(np.float32)
+        spec = dataset[ORIGINAL_SPEC_KEY][i].numpy().astype(np.float32)
         audio_waveform = dataset_waveform[AUDIO_KEY][i]
         audio_class = dataset[CLASS_KEY][i]
     else:
         sample = dataset[i]  # Get a sample from the dataset
         audio = torch.tensor(sample[AUDIO_KEY])
-        spec = sample["original"]
+        spec = sample[ORIGINAL_SPEC_KEY]
         audio_waveform = dataset_waveform[i][AUDIO_KEY]
         audio_class = sample[CLASS_KEY]
     return audio, spec, audio_waveform, audio_class
-
-
