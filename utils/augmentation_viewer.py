@@ -2,12 +2,14 @@ import os
 import tkinter as tk
 
 import librosa
+import matplotlib
 import numpy as np
 import sounddevice as sd
 import soundfile as sf
 from dotenv import load_dotenv
-from matplotlib import pyplot as plt
 
+matplotlib.use('TkAgg')
+import matplotlib.pyplot as plt
 from dataset.load_asv_19_dataset import LoadAsvSpoof19
 from utils.audio_utils import AudioUtils
 from utils.augmentations import introduce_entropy
@@ -66,7 +68,7 @@ def print_specs(original_spec, aug_audio_waveform, sr):
     ax2.set_title('Aug spec')
     ax2.invert_yaxis()
     fig.colorbar(img, format='%+2.0f dB', ax=ax2)
-    plt.show()
+    plt.show(block=True)
 
 
 if __name__ == "__main__":
