@@ -258,9 +258,9 @@ class PatchEmbed(nn.Module):
 
     def forward(self, x):
         B, C, H, W = x.shape
-        if not (H == self.img_size[0] and W == self.img_size[1]):
-            # https://github.com/kkoutini/PaSST/issues/10
-            warnings.warn(f"Input image size ({H}*{W}) doesn't match model ({self.img_size[0]}*{self.img_size[1]}).")
+        # if not (H == self.img_size[0] and W == self.img_size[1]):
+        # https://github.com/kkoutini/PaSST/issues/10
+        # warnings.warn(f"Input image size ({H}*{W}) doesn't match model ({self.img_size[0]}*{self.img_size[1]}).")
         # to do maybe replace weights
         x = self.proj(x)
         if self.flatten:
@@ -787,5 +787,4 @@ def get_model(arch="passt_s_swa_p16_128_ap476", pretrained=True, n_classes=527, 
                        img_size=input_size, stride=stride, u_patchout=u_patchout,
                        s_patchout_t=s_patchout_t, s_patchout_f=s_patchout_f)
     model = fix_embedding_layer(model)
-    print(model)
     return model

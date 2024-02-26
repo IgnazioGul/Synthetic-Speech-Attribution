@@ -14,7 +14,6 @@ class AttentionVgg16(nn.Module):
 
         # Create a new first layer with 3 input channels
         self.conv_block0 = nn.Conv2d(1, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
-        print(self.conv_block0.weight.data.shape, net.features[0].weight.data.clone().shape)
         # Initialize the new first layer with the pretrained weights from the original first layer
         self.conv_block0.weight.data = net.features[0].weight.data[:, 0:1, :, :].clone().sum(dim=1,
                                                                                              keepdim=True) / 3
