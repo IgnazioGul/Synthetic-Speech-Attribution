@@ -158,7 +158,7 @@ if __name__ == "__main__":
     partition = "validation"
 
     N_SAMPLES = 10
-    # attack only one target class
+    # attack only one target class (not effective if you set test_attack_on_all_classes = True)
     is_target_attack = True
     target_class = 3
 
@@ -196,10 +196,10 @@ if __name__ == "__main__":
                                                                   original_dataset=original_dataset,
                                                                   original_dataset_waveform=original_dataset_waveform)
             model.eval()
-            dataset_len = dataset[AUDIO_KEY].shape[0] if is_target_attack else len(dataset)
+            dataset_len = dataset[AUDIO_KEY].shape[0]
             print(f"*************** BEGIN ON CLASS {cur_class} *********************")
             n_correct_clean_preds, n_correct_aug_preds = apply_attack(N_SAMPLES, dataset_len, dataset, dataset_waveform,
-                                                                      is_target_attack,
+                                                                      is_target_attack=True,
                                                                       is_attack_on_all_classes=test_attack_on_all_classes,
                                                                       should_print_specs=should_print_specs)
             print(
