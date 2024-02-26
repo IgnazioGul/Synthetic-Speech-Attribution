@@ -3,6 +3,7 @@ import os
 import lightning.pytorch as pl
 import torch
 import torchmetrics
+import wandb
 from dotenv import load_dotenv
 from matplotlib import pyplot as plt
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
@@ -13,11 +14,13 @@ from torch.utils.data import DataLoader
 from torchvision import models, utils
 from typing_extensions import Literal
 
-import wandb
-from load_timi_dataset import LoadTimiDataset
+from dataset.load_asv_19_dataset import LoadAsvSpoof19
+from dataset.load_timi_dataset import LoadTimiDataset
 from models.attention_vgg16 import AttentionVgg16
 from models.blocks.attention_block import visualize_attention, print_original_spec
-from utils.timi_tts_constants import AUDIO_KEY, CLASS_KEY, LABELS_MAP
+from models.passt.base import get_basic_model, get_model_passt
+from utils.dataset_utils import get_dataset_base_path
+from utils.timi_tts_constants import AUDIO_KEY, CLASS_KEY, LABELS_MAP, ORIGINAL_SPEC_KEY
 
 
 class SyntheticClassifier(pl.LightningModule):
@@ -25,18 +28,30 @@ class SyntheticClassifier(pl.LightningModule):
 
     def __init__(self, pretrained: bool, metadata_file: Literal[
         "clean.csv", "dtw.csv", "aug.csv", "aug_dtw.csv", "clean_reduced.csv", "dtw_reduced.csv", "aug_reduced.csv", "aug_dtw_reduced.csv"],
-                 model_name: Literal["resnet18", "resnet34", "resnet50", "attVgg16"],
+                 model_name: Literal["resnet18", "resnet34", "resnet50", "attVgg16", "passt"],
+                 n_classes: int,
                  is_validation_enabled: bool = True,
                  lr: float = 0.0005,
                  decay: float = 0.00002, momentum: float = 0.99, batch_size: int = 128,
                  optimizer: str = "SGD",
-                 is_gpu_enabled: bool = False, mode: Literal["normal", "reduced"] = "normal", freezed: bool = False
+                 is_gpu_enabled: bool = False,
+                 mode: Literal["normal", "reduced"] = "normal",
+                 is_augment_enabled: bool = False,
+                 freezed: bool = False,
+                 dataset: Literal["timi", "asv19", "asv19-silence"] = "timi",
+                 return_attentions: bool = True,
+                 extract_manual_spec: bool = False,
                  ):
         super().__init__()
+        self.extract_manual_spec = extract_manual_spec  # only used for passt
+        self.return_attentions = return_attentions
+        self.dataset = dataset
+        self.dataset_base_path = get_dataset_base_path(self.dataset)
         self.mode = mode
         self.metadata_file = metadata_file
         self.freezed = freezed
-        self.n_classes = 2 if self.mode == "reduced" else 12  # TODO add dyanamic num classes
+        self.is_augment_enabled = is_augment_enabled
+        self.n_classes = n_classes
         self.model_name = model_name
         self.is_validation_enabled = is_validation_enabled
         self.test_set = None
@@ -50,9 +65,9 @@ class SyntheticClassifier(pl.LightningModule):
         self.batch_size = batch_size
         self.model = self.load_model()
         self.is_gpu_enabled = is_gpu_enabled
+        # self.loss_module = torch.nn.CrossEntropyLoss() if self.n_classes > 2 else torch.nn.BCELoss()
         self.loss_module = torch.nn.CrossEntropyLoss()
         self.outputs = []
-
         load_dotenv()
 
     def load_model(self):
@@ -71,7 +86,11 @@ class SyntheticClassifier(pl.LightningModule):
             backbone.conv1 = nn.Conv2d(1, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False)
         elif self.model_name == "attVgg16":
             backbone = AttentionVgg16(num_classes=self.n_classes, normalize_attn=True, pretrained=self.pretrained,
-                                      freezed=self.freezed)
+                                      freezed=self.freezed, return_attentions=self.return_attentions)
+        elif self.model_name == "passt":
+            backbone = get_basic_model(mode="logits", extract_manual_spec=self.extract_manual_spec, pretrained=False)
+            backbone.net = get_model_passt(arch="passt_s_swa_p16_128_ap476", n_classes=self.n_classes,
+                                           pretrained=self.pretrained)
         else:
             raise Exception("Unsupported model ", self.mode)
         return backbone
@@ -93,22 +112,60 @@ class SyntheticClassifier(pl.LightningModule):
         return self.model(audio)
 
     def setup(self, stage: str = None):
-
         if stage == "fit" or stage is None:
-            self.training_set = LoadTimiDataset(base_path=os.getenv("TIMI-TTS-ROOT-DIR"),
-                                                metadata_file_path=self.metadata_file, partition="training",
-                                                model_name="attVgg16",
-                                                transform=True, is_validation_enabled=self.is_validation_enabled)
-            if self.is_validation_enabled:
-                self.validation_set = LoadTimiDataset(base_path=os.getenv("TIMI-TTS-ROOT-DIR"),
-                                                      metadata_file_path=self.metadata_file, partition="validation",
-                                                      model_name="attVgg16",
-                                                      transform=True)
+            if self.dataset == "timi":
+                self.training_set = LoadTimiDataset(base_path=self.dataset_base_path,
+                                                    metadata_file_path=self.metadata_file, partition="training",
+                                                    model_name=self.model_name,
+                                                    transform=True, is_validation_enabled=self.is_validation_enabled,
+                                                    mode=self.mode, is_augment_enabled=self.is_augment_enabled)
+                if self.is_validation_enabled:
+                    self.validation_set = LoadTimiDataset(base_path=self.dataset_base_path,
+                                                          metadata_file_path=self.metadata_file,
+                                                          partition="validation",
+                                                          model_name=self.model_name,
+                                                          transform=True)
+            elif self.dataset == "asv19":
+                self.training_set = LoadAsvSpoof19(base_path=self.dataset_base_path, partition="training",
+                                                   model_name=self.model_name,
+                                                   is_validation_enabled=self.is_validation_enabled,
+                                                   mode=self.mode, transform=True,
+                                                   is_augment_enabled=self.is_augment_enabled,
+                                                   extract_manual_spec=self.extract_manual_spec)
+                if self.is_validation_enabled:
+                    self.validation_set = LoadAsvSpoof19(base_path=self.dataset_base_path,
+                                                         partition="validation",
+                                                         model_name=self.model_name,
+                                                         mode=self.mode, transform=True,
+                                                         extract_manual_spec=self.extract_manual_spec)
+            elif self.dataset == "asv19-silence":
+                self.training_set = LoadAsvSpoof19(base_path=self.dataset_base_path, partition="training",
+                                                   model_name=self.model_name,
+                                                   is_validation_enabled=self.is_validation_enabled,
+                                                   mode=self.mode, transform=True,
+                                                   is_asv19_silence_version=True,
+                                                   is_augment_enabled=self.is_augment_enabled)
+                if self.is_validation_enabled:
+                    self.validation_set = LoadAsvSpoof19(base_path=self.dataset_base_path,
+                                                         partition="validation",
+                                                         model_name=self.model_name,
+                                                         mode=self.mode, transform=True,
+                                                         is_asv19_silence_version=True)
         if stage == "test" or stage is None:
-            self.test_set = LoadTimiDataset(base_path=os.getenv("TIMI-TTS-ROOT-DIR"),
-                                            metadata_file_path=self.metadata_file, partition="test",
-                                            model_name="attVgg16",
-                                            transform=True)
+            if self.dataset == "timi":
+                self.test_set = LoadTimiDataset(base_path=self.dataset_base_path,
+                                                metadata_file_path=self.metadata_file, partition="test",
+                                                model_name=self.model_name,
+                                                transform=True)
+            elif self.dataset == "asv19":
+                self.test_set = LoadAsvSpoof19(base_path=self.dataset_base_path, partition="validation",
+                                               model_name=self.model_name,
+                                               mode=self.mode, transform=True)
+            elif self.dataset == "asv19-silence":
+                self.test_set = LoadAsvSpoof19(base_path=self.dataset_base_path, partition="validation",
+                                               model_name=self.model_name,
+                                               mode=self.mode, transform=True,
+                                               is_asv19_silence_version=True)
 
     def _get_preds_loss_accuracy(self, batch, batch_idx):
         audios = batch[AUDIO_KEY]
@@ -124,7 +181,8 @@ class SyntheticClassifier(pl.LightningModule):
         f1 = torchmetrics.functional.f1_score(preds, labels, "multiclass",
                                               num_classes=self.n_classes)
 
-        if batch_idx == self.trainer.num_training_batches - 1 and self.model_name == "attVgg16":
+        if (batch_idx == 0 or batch_idx == 1) and self.model_name == "attVgg16":
+            # if batch_idx == self.trainer.num_training_batches - 1 and self.model_name == "attVgg16":
             _, attFilter1, attFilter2 = self.model(audios[0:8])
 
             I_train = utils.make_grid(audios[0:8], nrow=8, padding=2, normalize=True,
@@ -133,7 +191,7 @@ class SyntheticClassifier(pl.LightningModule):
             first = visualize_attention(I_train, attFilter1, up_factor=2, no_attention=False)
             second = visualize_attention(I_train, attFilter2, up_factor=4, no_attention=False)
 
-            orig_spec = batch["original"][0:8]
+            orig_spec = batch[ORIGINAL_SPEC_KEY][0:8]
             n_rows = 1
             fig = plt.figure(figsize=(30, 10), layout="constrained")
             spec = fig.add_gridspec(3, 8)
@@ -174,6 +232,8 @@ class SyntheticClassifier(pl.LightningModule):
         return probs, logits, loss, acc, f1
 
     def training_step(self, train_batch, batch_idx):
+        if self.is_augment_enabled:
+            train_batch = LoadTimiDataset.extract_aug_batch(train_batch)
         x = train_batch[AUDIO_KEY]
         n = x.shape[0]
         self.global_step += n
@@ -215,11 +275,18 @@ class SyntheticClassifier(pl.LightningModule):
         probs = torch.cat([tmp['probs'] for tmp in self.outputs]).cpu().numpy()
         y_true = torch.cat([tmp['y_true'] for tmp in self.outputs]).tolist()
         all_class_names = LABELS_MAP.keys()
-        cm = wandb.plot.confusion_matrix(
-            y_true=y_true,
-            probs=probs,
-            class_names=["glowtts", "fastpitch"] if self.mode == "reduced" else all_class_names
-        )
+        if self.dataset == "timi":
+            cm = wandb.plot.confusion_matrix(
+                y_true=y_true,
+                probs=probs,
+                class_names=["glowtts", "fastpitch"] if self.mode == "reduced" else all_class_names
+            )
+        else:
+            cm = wandb.plot.confusion_matrix(
+                y_true=y_true,
+                probs=probs,
+                class_names=LoadAsvSpoof19.classes_names
+            )
         wandb.log({"confusion_matrix": cm})
 
         # wandb.sklearn.plot_confusion_matrix(y_true, preds, class_names)
@@ -234,7 +301,9 @@ class SyntheticClassifier(pl.LightningModule):
         return preds
 
     def train_dataloader(self):
-        return DataLoader(self.training_set, batch_size=self.batch_size, shuffle=False, num_workers=4,
+        return DataLoader(self.training_set, batch_size=self.batch_size,
+                          # sampler=BalancedBatchSampler(self.training_set, torch.Tensor(all_items)),
+                          shuffle=False, num_workers=4,
                           pin_memory=self.is_gpu_enabled)
 
     def val_dataloader(self):
@@ -257,14 +326,19 @@ if __name__ == '__main__':
     lr = 0.001
     decay = 0.00008
     batch_size = 32
-    mode = "reduced"
+    mode = "normal"
     metadata_file = "aug_reduced.csv"
     # model_name = "resnet50"
-    model_name = "attVgg16"
+    model_name = "passt"
     isValidationEnabled = True
-
+    is_augment_enabled = True
+    extract_manual_spec = False
+    dataset = "asv19"
     epochs = 25
     infos = ""
+    n_classes_timi = 2 if mode == "reduced" else 12
+    n_classes = 7 if dataset == "asv19" or dataset == "asv19-silence" else n_classes_timi
+    os.environ["WANDB_MODE"] = "offline"
 
     isGpuEnabled = False
 
@@ -272,7 +346,13 @@ if __name__ == '__main__':
                                      decay=decay,
                                      batch_size=batch_size,
                                      optimizer=optimizer,
-                                     is_gpu_enabled=isGpuEnabled, mode=mode, is_validation_enabled=isValidationEnabled)
+                                     is_gpu_enabled=isGpuEnabled,
+                                     mode=mode,
+                                     is_augment_enabled=is_augment_enabled,
+                                     is_validation_enabled=isValidationEnabled,
+                                     dataset=dataset,
+                                     n_classes=n_classes,
+                                     extract_manual_spec=extract_manual_spec)
 
     # Disable_stats=True or BSOD :()
     wandb.init(settings=wandb.Settings(
