@@ -80,7 +80,7 @@ pip install -r requirements.txt
 Run the following command to preprocess the TIMIT-TTS labels:
 
 ```bash
-python ./utils/timi_tts_utils.py
+python ./utils/timit_tts_utils.py
 ```
 
 ## Usage

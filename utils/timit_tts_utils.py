@@ -6,10 +6,10 @@ import pandas as pd
 import seaborn as sns
 
 from constants.env_var_enum import EnvVarEnum
-from timi_tts_constants import LABELS_MAP, CSV_METADATA_HEADER, CLASS_KEY
+from timit_tts_constants import LABELS_MAP, CSV_METADATA_HEADER, CLASS_KEY
 
 
-class TimiTtsUtils:
+class TimitTtsUtils:
 
     @staticmethod
     def plot_classes_distribution(root_dir: str, metatada_file: str):
@@ -71,7 +71,7 @@ class TimiTtsUtils:
         :return: None
         """
         partition_2 = ["multi_speaker", "single_speaker"]
-        files_map = TimiTtsUtils.open_label_files(root_dir, "w")
+        files_map = TimitTtsUtils.open_label_files(root_dir, "w")
         for label_file in files_map.values():
             tmp_w = writer(label_file)
             tmp_w.writerow(CSV_METADATA_HEADER)
@@ -109,7 +109,7 @@ class TimiTtsUtils:
         :return: None
         """
         i = 0
-        csv_files = TimiTtsUtils.open_pandas_label_csv(root_dir)
+        csv_files = TimitTtsUtils.open_pandas_label_csv(root_dir)
         for csv_type, csv_file in csv_files.items():
             new_filename = csv_type.lower() + "_reduced.csv"
             reduced_csv = open(os.path.join(root_dir, new_filename), mode="w", newline="")
@@ -138,6 +138,6 @@ if __name__ == '__main__':
     from dotenv import load_dotenv
 
     load_dotenv()
-    TimiTtsUtils.generate_timi_tts_labels(os.getenv(EnvVarEnum.TIMIT_TTS_ROOT_DIR.value))
-    TimiTtsUtils.generate_timi_tts_reduced_labels(EnvVarEnum.TIMIT_TTS_ROOT_DIR.value)
+    TimitTtsUtils.generate_timi_tts_labels(os.getenv(EnvVarEnum.TIMIT_TTS_ROOT_DIR.value))
+    TimitTtsUtils.generate_timi_tts_reduced_labels(EnvVarEnum.TIMIT_TTS_ROOT_DIR.value)
     # TimiTtsUtils.plot_classes_distribution(EnvVarEnum.TIMIT_TTS_ROOT_DIR.value, "clean.csv")

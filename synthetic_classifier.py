@@ -1,6 +1,7 @@
 import lightning.pytorch as pl
 import torch
 import torchmetrics
+import wandb
 from dotenv import load_dotenv
 from matplotlib import pyplot as plt
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
@@ -10,16 +11,15 @@ from torch.utils.data import DataLoader
 from torchvision import models, utils
 from typing_extensions import Literal
 
-import wandb
 from constants.dataset_enum import DatasetEnum
 from constants.model_enum import ModelEnum
 from dataset.load_asv_19_dataset import LoadAsvSpoof19
-from dataset.load_timi_dataset import LoadTimiDataset
+from dataset.load_timit_dataset import LoadTimitDataset
 from models.attVgg16.attention_block import visualize_attention, print_original_spec
 from models.attVgg16.attention_vgg16 import AttentionVgg16
 from models.passt.base import get_basic_model, get_model_passt
 from utils.dataset_utils import get_dataset_base_path, extract_aug_batch
-from utils.timi_tts_constants import AUDIO_KEY, CLASS_KEY, LABELS_MAP, ORIGINAL_SPEC_KEY
+from utils.timit_tts_constants import AUDIO_KEY, CLASS_KEY, LABELS_MAP, ORIGINAL_SPEC_KEY
 
 
 class SyntheticClassifier(pl.LightningModule):
@@ -111,16 +111,16 @@ class SyntheticClassifier(pl.LightningModule):
     def setup(self, stage: str = None):
         if stage == "fit" or stage is None:
             if self.dataset == DatasetEnum.TIMIT_TTS.value:
-                self.training_set = LoadTimiDataset(base_path=self.dataset_base_path,
-                                                    metadata_file_path=self.metadata_file, partition="training",
-                                                    model_name=self.model_name,
-                                                    transform=True, is_validation_enabled=self.is_validation_enabled)
+                self.training_set = LoadTimitDataset(base_path=self.dataset_base_path,
+                                                     metadata_file_path=self.metadata_file, partition="training",
+                                                     model_name=self.model_name,
+                                                     transform=True, is_validation_enabled=self.is_validation_enabled)
                 if self.is_validation_enabled:
-                    self.validation_set = LoadTimiDataset(base_path=self.dataset_base_path,
-                                                          metadata_file_path=self.metadata_file,
-                                                          partition="validation",
-                                                          model_name=self.model_name,
-                                                          transform=True)
+                    self.validation_set = LoadTimitDataset(base_path=self.dataset_base_path,
+                                                           metadata_file_path=self.metadata_file,
+                                                           partition="validation",
+                                                           model_name=self.model_name,
+                                                           transform=True)
             elif self.dataset == DatasetEnum.ASV19.value:
                 self.training_set = LoadAsvSpoof19(base_path=self.dataset_base_path, partition="training",
                                                    model_name=self.model_name,
@@ -147,10 +147,10 @@ class SyntheticClassifier(pl.LightningModule):
                                                          is_asv19_silence_version=True)
         if stage == "test" or stage is None:
             if self.dataset == DatasetEnum.TIMIT_TTS.value:
-                self.test_set = LoadTimiDataset(base_path=self.dataset_base_path,
-                                                metadata_file_path=self.metadata_file, partition="test",
-                                                model_name=self.model_name,
-                                                transform=True)
+                self.test_set = LoadTimitDataset(base_path=self.dataset_base_path,
+                                                 metadata_file_path=self.metadata_file, partition="test",
+                                                 model_name=self.model_name,
+                                                 transform=True)
             elif self.dataset == DatasetEnum.ASV19.value:
                 self.test_set = LoadAsvSpoof19(base_path=self.dataset_base_path, partition="validation",
                                                model_name=self.model_name,

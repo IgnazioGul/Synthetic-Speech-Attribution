@@ -9,7 +9,7 @@ from constants.env_var_enum import EnvVarEnum
 from constants.model_enum import ModelEnum
 from dataset.loader_utils import preprocess_item
 from utils.augmentations import apply_time_shift, asv19_attack_class_based
-from utils.timi_tts_constants import AUDIO_KEY, CLASS_KEY, ORIGINAL_SPEC_KEY
+from utils.timit_tts_constants import AUDIO_KEY, CLASS_KEY, ORIGINAL_SPEC_KEY
 
 
 class LoadAsvSpoof19(Dataset):

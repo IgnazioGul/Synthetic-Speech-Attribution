@@ -9,13 +9,13 @@ from typing_extensions import Literal
 from constants.dataset_enum import DatasetEnum
 from constants.model_enum import ModelEnum
 from dataset.load_asv_19_dataset import LoadAsvSpoof19
-from dataset.load_timi_dataset import LoadTimiDataset
+from dataset.load_timit_dataset import LoadTimitDataset
 from synthetic_classifier import SyntheticClassifier
 from utils.augmentation_viewer import print_specs
 from utils.augmentations import (asv19_attack_class_based)
 from utils.dataset_utils import extract_dict_vals, load_specific_classes, get_dataset_base_path
 from utils.model_utils import get_vulnerable_ckpt, get_fixed_ckpt
-from utils.timi_tts_constants import AUDIO_KEY
+from utils.timit_tts_constants import AUDIO_KEY
 
 
 def load_txt(full_path):
@@ -84,16 +84,16 @@ def get_dataset(dataset_name, dataset_base_path, model_name, partition: Literal[
                                           should_return_waveform=True,
                                           extract_manual_spec=False)
     elif dataset_name == DatasetEnum.TIMIT_TTS.value:
-        dataset = LoadTimiDataset(base_path=dataset_base_path,
-                                  metadata_file_path="clean.csv", partition=partition,
-                                  model_name=model_name,
-                                  transform=True, is_validation_enabled=True,
-                                  extract_manual_spec=True)
-        dataset_waveform = LoadTimiDataset(base_path=dataset_base_path,
-                                           metadata_file_path="clean.csv", partition=partition,
-                                           model_name=model_name,
-                                           transform=True, is_validation_enabled=True,
-                                           should_return_waveform=True)
+        dataset = LoadTimitDataset(base_path=dataset_base_path,
+                                   metadata_file_path="clean.csv", partition=partition,
+                                   model_name=model_name,
+                                   transform=True, is_validation_enabled=True,
+                                   extract_manual_spec=True)
+        dataset_waveform = LoadTimitDataset(base_path=dataset_base_path,
+                                            metadata_file_path="clean.csv", partition=partition,
+                                            model_name=model_name,
+                                            transform=True, is_validation_enabled=True,
+                                            should_return_waveform=True)
     else:
         raise ValueError("Invalid dataset name, only allowed are 'asv19', 'asv19_silence' and 'timit_tts'")
     return dataset, dataset_waveform

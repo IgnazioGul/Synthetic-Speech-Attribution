@@ -9,7 +9,7 @@ from typing_extensions import Literal
 from constants.dataset_enum import DatasetEnum
 from constants.env_var_enum import EnvVarEnum
 from constants.model_enum import ModelEnum
-from utils.timi_tts_constants import AUDIO_KEY, CLASS_KEY, ORIGINAL_SPEC_KEY
+from utils.timit_tts_constants import AUDIO_KEY, CLASS_KEY, ORIGINAL_SPEC_KEY
 
 load_dotenv()
 asv19_checkpoints = {

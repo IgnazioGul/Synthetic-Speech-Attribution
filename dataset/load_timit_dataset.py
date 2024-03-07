@@ -7,10 +7,10 @@ from torch.utils.data import Dataset
 from typing_extensions import Literal
 
 from dataset.loader_utils import preprocess_item
-from utils.timi_tts_constants import AUDIO_KEY, CLASS_KEY, ORIGINAL_SPEC_KEY
+from utils.timit_tts_constants import AUDIO_KEY, CLASS_KEY, ORIGINAL_SPEC_KEY
 
 
-class LoadTimiDataset(Dataset):
+class LoadTimitDataset(Dataset):
 
     def __init__(self, base_path: str, metadata_file_path: str, partition: Literal["training", "validation", "test"],
                  model_name: Literal["resnet18", "resnet34", "resnet50", "att_vgg16"],
