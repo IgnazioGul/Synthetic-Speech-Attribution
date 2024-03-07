@@ -6,18 +6,18 @@ from dotenv import load_dotenv
 from torch.utils.data import DataLoader, Dataset
 from typing_extensions import Literal
 
+from constants.env_var_enum import EnvVarEnum
 from utils.timi_tts_constants import AUDIO_KEY, CLASS_KEY, ORIGINAL_SPEC_KEY
 
 load_dotenv()
 asv19_checkpoints = {
-    # "passt": os.getenv("PASST-ASV19-CKP-DIR"),
-    "passt": os.getenv("PASST-TIME-SHIFT-ASV19-CKP-DIR"),
-    "attVgg16": os.getenv("ATT-VGG-16-ASV19-CKP-DIR")
+    "passt": os.getenv(EnvVarEnum.PASST_ASV19_CKP.value),
+    "attVgg16": os.getenv(EnvVarEnum.ATT_VGG16_ASV19_CKP.value)
 }
 
 asv19_silence_checkpoints = {
-    "passt": os.getenv("PASST-ASV19-SILENCE-CKP-DIR"),
-    "attVgg16": os.getenv("ATT-VGG-16-ASV19-SILENCE-CKP-DIR")
+    "passt": os.getenv(EnvVarEnum.PASST_ASV19_SILENCE_CKP.value),
+    "attVgg16": os.getenv(EnvVarEnum.ATT_VGG16_ASV19_SILENCE_CKP_DIR.value)
 }
 
 
@@ -28,11 +28,11 @@ def get_dataset_base_path(dataset: Literal["asv19", "asv19-silence", "timi"]):
     :return: base path string
     """
     if dataset == "asv19":
-        return os.getenv("ASV-19-ROOT-DIR")
+        return os.getenv(EnvVarEnum.ASV19_ROOT_DIR.value)
     elif dataset == "asv19-silence":
-        return os.getenv("ASV-19-SILENCE-ROOT-DIR")
+        return os.getenv(EnvVarEnum.ASV19_SILENCE_ROOT_DIR.value)
     elif dataset == "timi":
-        return os.getenv("TIMI-TTS-ROOT-DIR")
+        return os.getenv(EnvVarEnum.TIMIT_TTS_ROOT_DIR.value)
 
 
 def get_checkpoint_path(dataset: Literal["asv19", "asv19-silence"], model_name: Literal["passt", "attVgg16"]):

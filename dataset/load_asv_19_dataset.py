@@ -5,6 +5,7 @@ import numpy as np
 from torch.utils.data import Dataset, DataLoader
 from typing_extensions import Literal
 
+from constants.env_var_enum import EnvVarEnum
 from dataset.loader_utils import preprocess_item
 from utils.augmentations import apply_time_shift, asv19_attack_class_based
 from utils.timi_tts_constants import AUDIO_KEY, CLASS_KEY, ORIGINAL_SPEC_KEY
@@ -115,7 +116,7 @@ if __name__ == "__main__":
     load_dotenv()
 
     # root dir should be .../ASV_ROOT/LA
-    dt = LoadAsvSpoof19(base_path=os.getenv("ASV-19-ROOT-DIR"),
+    dt = LoadAsvSpoof19(base_path=os.getenv(EnvVarEnum.ASV19_ROOT_DIR.value),
                         partition="training",
                         transform=True, model_name="passt", mode="reduced")
 

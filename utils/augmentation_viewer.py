@@ -8,6 +8,8 @@ import sounddevice as sd
 import soundfile as sf
 from dotenv import load_dotenv
 
+from constants.env_var_enum import EnvVarEnum
+
 matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 from dataset.load_asv_19_dataset import LoadAsvSpoof19
@@ -73,7 +75,7 @@ def print_specs(original_spec, aug_audio_waveform, sr):
 
 if __name__ == "__main__":
     load_dotenv()
-    base_path = os.getenv("ASV-19-ROOT-DIR")
+    base_path = os.getenv(EnvVarEnum.ASV19_ROOT_DIR.value)
     partition = "training"
     full_path = os.path.join(base_path, LoadAsvSpoof19.partitions_labels[partition])
 

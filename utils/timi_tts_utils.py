@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
 
+from constants.env_var_enum import EnvVarEnum
 from timi_tts_constants import LABELS_MAP, CSV_METADATA_HEADER, CLASS_KEY
 
 
@@ -137,6 +138,6 @@ if __name__ == '__main__':
     from dotenv import load_dotenv
 
     load_dotenv()
-    TimiTtsUtils.generate_timi_tts_labels(os.getenv("TIMI-TTS-ROOT-DIR"))
-    TimiTtsUtils.generate_timi_tts_reduced_labels(os.getenv("TIMI-TTS-ROOT-DIR"))
-    # TimiTtsUtils.plot_classes_distribution(os.getenv("TIMI-TTS-ROOT-DIR"), "clean.csv")
+    TimiTtsUtils.generate_timi_tts_labels(os.getenv(EnvVarEnum.TIMIT_TTS_ROOT_DIR.value))
+    TimiTtsUtils.generate_timi_tts_reduced_labels(EnvVarEnum.TIMIT_TTS_ROOT_DIR.value)
+    # TimiTtsUtils.plot_classes_distribution(EnvVarEnum.TIMIT_TTS_ROOT_DIR.value, "clean.csv")
