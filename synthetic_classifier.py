@@ -12,6 +12,7 @@ from typing_extensions import Literal
 
 import wandb
 from constants.dataset_enum import DatasetEnum
+from constants.model_enum import ModelEnum
 from dataset.load_asv_19_dataset import LoadAsvSpoof19
 from dataset.load_timi_dataset import LoadTimiDataset
 from models.attVgg16.attention_block import visualize_attention, print_original_spec
@@ -26,7 +27,7 @@ class SyntheticClassifier(pl.LightningModule):
 
     def __init__(self, pretrained: bool, metadata_file: Literal[
         "clean.csv", "dtw.csv", "aug.csv", "aug_dtw.csv", "clean_reduced.csv", "dtw_reduced.csv", "aug_reduced.csv", "aug_dtw_reduced.csv"],
-                 model_name: Literal["resnet18", "resnet34", "resnet50", "attVgg16", "passt"],
+                 model_name: Literal["resnet18", "resnet34", "resnet50", "att_vgg16", "passt"],
                  n_classes: int,
                  is_validation_enabled: bool = True,
                  lr: float = 0.0005,
@@ -80,10 +81,10 @@ class SyntheticClassifier(pl.LightningModule):
             backbone = models.resnet50(pretrained=self.pretrained)
             backbone.fc = nn.Linear(2048, self.n_classes)
             backbone.conv1 = nn.Conv2d(1, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False)
-        elif self.model_name == "attVgg16":
+        elif self.model_name == ModelEnum.ATT_VGG16.value:
             backbone = AttentionVgg16(num_classes=self.n_classes, normalize_attn=True, pretrained=self.pretrained,
                                       freezed=self.freezed, return_attentions=self.return_attentions)
-        elif self.model_name == "passt":
+        elif self.model_name == ModelEnum.PASST.value:
             backbone = get_basic_model(mode="logits", extract_manual_spec=self.extract_manual_spec, pretrained=False)
             backbone.net = get_model_passt(arch="passt_s_swa_p16_128_ap476", n_classes=self.n_classes,
                                            pretrained=self.pretrained)
@@ -163,7 +164,7 @@ class SyntheticClassifier(pl.LightningModule):
     def _get_preds_loss_accuracy(self, batch, batch_idx):
         audios = batch[AUDIO_KEY]
         labels = batch[CLASS_KEY]
-        if self.model_name == "attVgg16":
+        if self.model_name == ModelEnum.ATT_VGG16.value:
             logits, _, _ = self.model(audios)
         else:
             logits = self.model(audios)
@@ -174,8 +175,8 @@ class SyntheticClassifier(pl.LightningModule):
         f1 = torchmetrics.functional.f1_score(preds, labels, "multiclass",
                                               num_classes=self.n_classes)
 
-        if (batch_idx == 0 or batch_idx == 1) and self.model_name == "attVgg16":
-            # if batch_idx == self.trainer.num_training_batches - 1 and self.model_name == "attVgg16":
+        if (batch_idx == 0 or batch_idx == 1) and self.model_name == ModelEnum.ATT_VGG16.value:
+            # if batch_idx == self.trainer.num_training_batches - 1 and self.model_name == ModelEnum.ATT_VGG16.value:
             _, attFilter1, attFilter2 = self.model(audios[0:8])
 
             I_train = utils.make_grid(audios[0:8], nrow=8, padding=2, normalize=True,
@@ -210,7 +211,7 @@ class SyntheticClassifier(pl.LightningModule):
         audios = batch[AUDIO_KEY]
         labels = batch[CLASS_KEY]
 
-        if self.model_name == "attVgg16":
+        if self.model_name == ModelEnum.ATT_VGG16.value:
             logits, _, _ = self.model(audios)
         else:
             logits = self.model(audios)

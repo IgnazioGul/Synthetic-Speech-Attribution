@@ -13,7 +13,7 @@ from utils.timi_tts_constants import AUDIO_KEY, CLASS_KEY, ORIGINAL_SPEC_KEY
 class LoadTimiDataset(Dataset):
 
     def __init__(self, base_path: str, metadata_file_path: str, partition: Literal["training", "validation", "test"],
-                 model_name: Literal["resnet18", "resnet34", "resnet50", "attVgg16"],
+                 model_name: Literal["resnet18", "resnet34", "resnet50", "att_vgg16"],
                  is_validation_enabled: bool = True,
                  transform: bool = False,
                  should_return_waveform: bool = False,

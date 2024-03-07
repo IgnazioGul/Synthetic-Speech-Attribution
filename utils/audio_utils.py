@@ -1,17 +1,16 @@
-import csv
-
 import librosa
 import librosa.display
 import librosa.feature
 import numpy as np
 import torch
-from matplotlib import pyplot as plt
+
+from constants.model_enum import ModelEnum
 
 
 class AudioUtils:
 
     @staticmethod
-    def get_mel_spect(audio: np.ndarray, sr: int, n_mels: int = 128, model_name="attVgg16"):
+    def get_mel_spect(audio: np.ndarray, sr: int, n_mels: int = 128, model_name=ModelEnum.ATT_VGG16.value):
         """
         Returns mel spectrogram in Db scale of input audio \n
         :param audio: np.ndarray audio
@@ -20,7 +19,7 @@ class AudioUtils:
         :param model_name:
         :return: spectrogram: numpy.ndarray
         """
-        if model_name == "passt":
+        if model_name == ModelEnum.PASST.value:
             mel_spec = librosa.feature.melspectrogram(y=audio, sr=sr, n_mels=n_mels, win_length=800, hop_length=320,
                                                       n_fft=1024, htk=False, fmax=sr / 2)
         else:

@@ -7,6 +7,7 @@ from torch.utils.data import DataLoader, Dataset
 from typing_extensions import Literal
 
 from constants.dataset_enum import DatasetEnum
+from constants.model_enum import ModelEnum
 from dataset.load_asv_19_dataset import LoadAsvSpoof19
 from dataset.load_timi_dataset import LoadTimiDataset
 from synthetic_classifier import SyntheticClassifier
@@ -32,7 +33,8 @@ def preprocess_audio(audio, sr, dataset_obj, should_return_spec=False):
         return aug_audio.clone().detach().to(dtype=torch.float)
 
 
-def get_model_kwargs(model_name="attVgg16", dataset=DatasetEnum.ASV19.value, extract_manual_spec: bool = False,
+def get_model_kwargs(model_name=ModelEnum.ATT_VGG16.value, dataset=DatasetEnum.ASV19.value,
+                     extract_manual_spec: bool = False,
                      mode="normal",
                      pretrained: bool = True):
     isPretrained = pretrained
@@ -151,8 +153,8 @@ if __name__ == "__main__":
 
     # ------- BEGIN CONFIGURATION -------
 
-    # model_name = "attVgg16"
-    model_name = "passt"
+    # model_name = ModelEnum.ATT_VGG16.value
+    model_name = ModelEnum.PASST.value
 
     dataset_name = DatasetEnum.TIMIT_TTS.value
     # dataset_name = DatasetEnum.ASV19.value

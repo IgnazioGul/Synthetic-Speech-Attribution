@@ -5,6 +5,7 @@ from pytorch_lightning.loggers import WandbLogger
 
 import wandb
 from constants.dataset_enum import DatasetEnum
+from constants.model_enum import ModelEnum
 from synthetic_classifier import SyntheticClassifier, _EarlyStopping
 
 if __name__ == '__main__':
@@ -22,8 +23,8 @@ if __name__ == '__main__':
     optimizer = "Adam"
 
     metadata_file = "clean.csv"  # change to load different TIMIT data (clean, aug, dtw, dwt_aug, all)
-    # model_name = "attVgg16"
-    model_name = "passt"
+    # model_name = ModelEnum.ATT_VGG16.value
+    model_name = ModelEnum.PASST.value
     # dataset = DatasetEnum.ASV19.value
     dataset = DatasetEnum.TIMIT_TTS.value
     # ------- END CONFIGURATION -------

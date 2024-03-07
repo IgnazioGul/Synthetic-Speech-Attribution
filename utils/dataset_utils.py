@@ -8,17 +8,18 @@ from typing_extensions import Literal
 
 from constants.dataset_enum import DatasetEnum
 from constants.env_var_enum import EnvVarEnum
+from constants.model_enum import ModelEnum
 from utils.timi_tts_constants import AUDIO_KEY, CLASS_KEY, ORIGINAL_SPEC_KEY
 
 load_dotenv()
 asv19_checkpoints = {
-    "passt": os.getenv(EnvVarEnum.PASST_ASV19_CKP.value),
-    "attVgg16": os.getenv(EnvVarEnum.ATT_VGG16_ASV19_CKP.value)
+    ModelEnum.PASST.value: os.getenv(EnvVarEnum.PASST_ASV19_CKP.value),
+    ModelEnum.ATT_VGG16.value: os.getenv(EnvVarEnum.ATT_VGG16_ASV19_CKP.value)
 }
 
 asv19_silence_checkpoints = {
-    "passt": os.getenv(EnvVarEnum.PASST_ASV19_SILENCE_CKP.value),
-    "attVgg16": os.getenv(EnvVarEnum.ATT_VGG16_ASV19_SILENCE_CKP_DIR.value)
+    ModelEnum.PASST.value: os.getenv(EnvVarEnum.PASST_ASV19_SILENCE_CKP.value),
+    ModelEnum.ATT_VGG16.value: os.getenv(EnvVarEnum.ATT_VGG16_ASV19_SILENCE_CKP_DIR.value)
 }
 
 
@@ -36,7 +37,7 @@ def get_dataset_base_path(dataset: Literal["asv19", "asv19_silence", "timit_tts"
         return os.getenv(EnvVarEnum.TIMIT_TTS_ROOT_DIR.value)
 
 
-def get_checkpoint_path(dataset: Literal["asv19", "asv19-silence"], model_name: Literal["passt", "attVgg16"]):
+def get_checkpoint_path(dataset: Literal["asv19", "asv19_silence"], model_name: Literal["passt", "att_vgg16"]):
     """
     Returns checkpoint path of given dataset and model, from .env variables
     :param dataset:

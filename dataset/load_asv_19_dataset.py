@@ -6,6 +6,7 @@ from torch.utils.data import Dataset, DataLoader
 from typing_extensions import Literal
 
 from constants.env_var_enum import EnvVarEnum
+from constants.model_enum import ModelEnum
 from dataset.loader_utils import preprocess_item
 from utils.augmentations import apply_time_shift, asv19_attack_class_based
 from utils.timi_tts_constants import AUDIO_KEY, CLASS_KEY, ORIGINAL_SPEC_KEY
@@ -35,7 +36,7 @@ class LoadAsvSpoof19(Dataset):
     }
 
     def __init__(self, base_path: str, partition: Literal["training", "validation", "test"],
-                 model_name: Literal["resnet18", "resnet34", "resnet50", "attVgg16", "passt"],
+                 model_name: Literal["resnet18", "resnet34", "resnet50", "att_vgg16", "passt"],
                  is_augment_enabled: bool = False,
                  transform: bool = False,
                  should_return_waveform: bool = False,
@@ -118,7 +119,7 @@ if __name__ == "__main__":
     # root dir should be .../ASV_ROOT/LA
     dt = LoadAsvSpoof19(base_path=os.getenv(EnvVarEnum.ASV19_ROOT_DIR.value),
                         partition="training",
-                        transform=True, model_name="passt")
+                        transform=True, model_name=ModelEnum.PASST.value)
 
     dt = DataLoader(dt, batch_size=32, shuffle=False, num_workers=0,
                     pin_memory=False)

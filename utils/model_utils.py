@@ -4,17 +4,19 @@ from typing_extensions import Literal
 
 from constants.dataset_enum import DatasetEnum
 from constants.env_var_enum import EnvVarEnum
+from constants.model_enum import ModelEnum
 
 
-def get_vulnerable_ckpt(model_name: Literal["attVgg16", "passt"],
+def get_vulnerable_ckpt(model_name: Literal["att_vgg16", "passt"],
                         dataset_name: Literal["asv19", "asv19_silence", "timit_tts"]):
     """
     Returns vulnerable (i.e. not trained on attacked samples) checkpoint path of given dataset and model, from .env variables
     """
     ckpt_path = os.getenv(
-        EnvVarEnum.ATT_VGG16_ASV19_CKP.value if model_name == "attVgg16" else EnvVarEnum.PASST_ASV19_CKP.value)
+        EnvVarEnum.ATT_VGG16_ASV19_CKP.value if model_name == ModelEnum.ATT_VGG16.value else EnvVarEnum.PASST_ASV19_CKP.value)
     if dataset_name == DatasetEnum.TIMIT_TTS.value:
-        ckpt_path = os.getenv(EnvVarEnum.ATT_VGG16_TIMIT_CLEAN_CKP.value) if model_name == "attVgg16" else os.getenv(
+        ckpt_path = os.getenv(
+            EnvVarEnum.ATT_VGG16_TIMIT_CLEAN_CKP.value) if model_name == ModelEnum.ATT_VGG16.value else os.getenv(
             EnvVarEnum.PASST_TIMIT_CLEAN_CKP.value)
     return ckpt_path
 
