@@ -11,6 +11,7 @@ from torchvision import models, utils
 from typing_extensions import Literal
 
 import wandb
+from constants.dataset_enum import DatasetEnum
 from dataset.load_asv_19_dataset import LoadAsvSpoof19
 from dataset.load_timi_dataset import LoadTimiDataset
 from models.attVgg16.attention_block import visualize_attention, print_original_spec
@@ -34,7 +35,7 @@ class SyntheticClassifier(pl.LightningModule):
                  is_gpu_enabled: bool = False,
                  is_augment_enabled: bool = False,
                  freezed: bool = False,
-                 dataset: Literal["timi", "asv19", "asv19-silence"] = "timi",
+                 dataset: Literal["timit_tts", "asv19", "asv19_silence"] = "timit_tts",
                  return_attentions: bool = True,
                  extract_manual_spec: bool = False,
                  ):
@@ -108,7 +109,7 @@ class SyntheticClassifier(pl.LightningModule):
 
     def setup(self, stage: str = None):
         if stage == "fit" or stage is None:
-            if self.dataset == "timi":
+            if self.dataset == DatasetEnum.TIMIT_TTS.value:
                 self.training_set = LoadTimiDataset(base_path=self.dataset_base_path,
                                                     metadata_file_path=self.metadata_file, partition="training",
                                                     model_name=self.model_name,
@@ -119,7 +120,7 @@ class SyntheticClassifier(pl.LightningModule):
                                                           partition="validation",
                                                           model_name=self.model_name,
                                                           transform=True)
-            elif self.dataset == "asv19":
+            elif self.dataset == DatasetEnum.ASV19.value:
                 self.training_set = LoadAsvSpoof19(base_path=self.dataset_base_path, partition="training",
                                                    model_name=self.model_name,
                                                    transform=True,
@@ -131,7 +132,7 @@ class SyntheticClassifier(pl.LightningModule):
                                                          model_name=self.model_name,
                                                          transform=True,
                                                          extract_manual_spec=self.extract_manual_spec)
-            elif self.dataset == "asv19-silence":
+            elif self.dataset == DatasetEnum.ASV19_SILENCE.value:
                 self.training_set = LoadAsvSpoof19(base_path=self.dataset_base_path, partition="training",
                                                    model_name=self.model_name,
                                                    transform=True,
@@ -144,16 +145,16 @@ class SyntheticClassifier(pl.LightningModule):
                                                          transform=True,
                                                          is_asv19_silence_version=True)
         if stage == "test" or stage is None:
-            if self.dataset == "timi":
+            if self.dataset == DatasetEnum.TIMIT_TTS.value:
                 self.test_set = LoadTimiDataset(base_path=self.dataset_base_path,
                                                 metadata_file_path=self.metadata_file, partition="test",
                                                 model_name=self.model_name,
                                                 transform=True)
-            elif self.dataset == "asv19":
+            elif self.dataset == DatasetEnum.ASV19.value:
                 self.test_set = LoadAsvSpoof19(base_path=self.dataset_base_path, partition="validation",
                                                model_name=self.model_name,
                                                transform=True)
-            elif self.dataset == "asv19-silence":
+            elif self.dataset == DatasetEnum.ASV19_SILENCE.value:
                 self.test_set = LoadAsvSpoof19(base_path=self.dataset_base_path, partition="validation",
                                                model_name=self.model_name,
                                                transform=True,
@@ -266,8 +267,8 @@ class SyntheticClassifier(pl.LightningModule):
         preds = torch.cat([tmp['preds'] for tmp in self.outputs]).cpu().numpy()
         probs = torch.cat([tmp['probs'] for tmp in self.outputs]).cpu().numpy()
         y_true = torch.cat([tmp['y_true'] for tmp in self.outputs]).tolist()
-        all_class_names = LABELS_MAP.keys()
-        if self.dataset == "timi":
+        all_class_names = list(LABELS_MAP.keys())
+        if self.dataset == DatasetEnum.TIMIT_TTS.value:
             cm = wandb.plot.confusion_matrix(
                 y_true=y_true,
                 probs=probs,

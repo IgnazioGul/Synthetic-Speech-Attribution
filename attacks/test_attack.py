@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 from torch.utils.data import DataLoader, Dataset
 from typing_extensions import Literal
 
+from constants.dataset_enum import DatasetEnum
 from dataset.load_asv_19_dataset import LoadAsvSpoof19
 from dataset.load_timi_dataset import LoadTimiDataset
 from synthetic_classifier import SyntheticClassifier
@@ -31,7 +32,8 @@ def preprocess_audio(audio, sr, dataset_obj, should_return_spec=False):
         return aug_audio.clone().detach().to(dtype=torch.float)
 
 
-def get_model_kwargs(model_name="attVgg16", dataset="asv19", extract_manual_spec: bool = False, mode="normal",
+def get_model_kwargs(model_name="attVgg16", dataset=DatasetEnum.ASV19.value, extract_manual_spec: bool = False,
+                     mode="normal",
                      pretrained: bool = True):
     isPretrained = pretrained
     optimizer = "Adam"
@@ -46,7 +48,7 @@ def get_model_kwargs(model_name="attVgg16", dataset="asv19", extract_manual_spec
     dataset = dataset
     epochs = 25
     n_classes_timi = 2 if mode == "reduced" else 12
-    n_classes = 7 if dataset == "asv19" or dataset == "asv19-silence" else n_classes_timi
+    n_classes = 7 if dataset == DatasetEnum.ASV19.value or dataset == DatasetEnum.ASV19_SILENCE.value else n_classes_timi
     os.environ["WANDB_MODE"] = "offline"
     return_attentions = False
     isGpuEnabled = False
@@ -73,13 +75,13 @@ def get_model_kwargs(model_name="attVgg16", dataset="asv19", extract_manual_spec
 
 
 def get_dataset(dataset_name, dataset_base_path, model_name, partition: Literal["training", "validation", "test"]):
-    if dataset_name == "asv19":
+    if dataset_name == DatasetEnum.ASV19.value:
         dataset = LoadAsvSpoof19(dataset_base_path, partition, model_name, transform=True,
                                  extract_manual_spec=True)
         dataset_waveform = LoadAsvSpoof19(dataset_base_path, partition, model_name, transform=True,
                                           should_return_waveform=True,
                                           extract_manual_spec=False)
-    elif dataset_name == "timi":
+    elif dataset_name == DatasetEnum.TIMIT_TTS.value:
         dataset = LoadTimiDataset(base_path=dataset_base_path,
                                   metadata_file_path="clean.csv", partition=partition,
                                   model_name=model_name,
@@ -91,7 +93,7 @@ def get_dataset(dataset_name, dataset_base_path, model_name, partition: Literal[
                                            transform=True, is_validation_enabled=True,
                                            should_return_waveform=True)
     else:
-        raise ValueError("Invalid dataset name, only allowed are 'asv19' and 'timi'")
+        raise ValueError("Invalid dataset name, only allowed are 'asv19', 'asv19_silence' and 'timit_tts'")
     return dataset, dataset_waveform
 
 
@@ -152,8 +154,8 @@ if __name__ == "__main__":
     # model_name = "attVgg16"
     model_name = "passt"
 
-    dataset_name = "timi"
-    # dataset_name = "asv19"
+    dataset_name = DatasetEnum.TIMIT_TTS.value
+    # dataset_name = DatasetEnum.ASV19.value
 
     partition = "validation"
 

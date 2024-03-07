@@ -4,6 +4,7 @@ import lightning.pytorch as pl
 from pytorch_lightning.loggers import WandbLogger
 
 import wandb
+from constants.dataset_enum import DatasetEnum
 from synthetic_classifier import SyntheticClassifier, _EarlyStopping
 
 if __name__ == '__main__':
@@ -23,19 +24,18 @@ if __name__ == '__main__':
     metadata_file = "clean.csv"  # change to load different TIMIT data (clean, aug, dtw, dwt_aug, all)
     # model_name = "attVgg16"
     model_name = "passt"
-    # dataset = "asv19"
-    dataset = "timi"
+    # dataset = DatasetEnum.ASV19.value
+    dataset = DatasetEnum.TIMIT_TTS.value
     # ------- END CONFIGURATION -------
 
     n_classes_timi = 12
-    n_classes = 7 if dataset == "asv19" or dataset == "asv19-silence" else n_classes_timi
+    n_classes = 7 if dataset == DatasetEnum.ASV19.value or dataset == DatasetEnum.ASV19_SILENCE.value else n_classes_timi
     os.environ["WANDB_MODE"] = "offline"  # comment this line to enable wandb cloud logging
     classifier = SyntheticClassifier(metadata_file=metadata_file, model_name=model_name, pretrained=isPretrained, lr=lr,
                                      decay=decay,
                                      batch_size=batch_size,
                                      optimizer=optimizer,
                                      is_gpu_enabled=isGpuEnabled,
-                                     mode=mode,
                                      is_augment_enabled=is_augment_enabled,
                                      is_validation_enabled=isValidationEnabled,
                                      dataset=dataset,
