@@ -114,3 +114,14 @@ def extract_dict_vals(i: int, dataset: Dataset, dataset_waveform: Dataset, is_ta
         audio_waveform = dataset_waveform[i][AUDIO_KEY]
         audio_class = sample[CLASS_KEY]
     return audio, spec, audio_waveform, audio_class
+
+
+def extract_aug_batch(batch_aug):
+    """
+    Concatenates two augmented batches into one
+    """
+    batch_aug[0][AUDIO_KEY] = torch.cat((batch_aug[0][AUDIO_KEY], batch_aug[1][AUDIO_KEY]), dim=0)
+    batch_aug[0][CLASS_KEY] = torch.cat((batch_aug[0][CLASS_KEY], batch_aug[1][CLASS_KEY]), dim=0)
+    batch_aug[0]["original"] = torch.cat((batch_aug[0]["original"], batch_aug[1]["original"]), dim=0)
+    batch_aug = batch_aug[0]
+    return batch_aug
