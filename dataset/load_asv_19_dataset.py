@@ -118,7 +118,7 @@ if __name__ == "__main__":
     # root dir should be .../ASV_ROOT/LA
     dt = LoadAsvSpoof19(base_path=os.getenv(EnvVarEnum.ASV19_ROOT_DIR.value),
                         partition="training",
-                        transform=True, model_name="passt", mode="reduced")
+                        transform=True, model_name="passt")
 
     dt = DataLoader(dt, batch_size=32, shuffle=False, num_workers=0,
                     pin_memory=False)
