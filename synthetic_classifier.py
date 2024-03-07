@@ -3,7 +3,6 @@ import os
 import lightning.pytorch as pl
 import torch
 import torchmetrics
-import wandb
 from dotenv import load_dotenv
 from matplotlib import pyplot as plt
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
@@ -14,12 +13,13 @@ from torch.utils.data import DataLoader
 from torchvision import models, utils
 from typing_extensions import Literal
 
+import wandb
 from dataset.load_asv_19_dataset import LoadAsvSpoof19
 from dataset.load_timi_dataset import LoadTimiDataset
 from models.attVgg16.attention_block import visualize_attention, print_original_spec
 from models.attVgg16.attention_vgg16 import AttentionVgg16
 from models.passt.base import get_basic_model, get_model_passt
-from utils.dataset_utils import get_dataset_base_path
+from utils.dataset_utils import get_dataset_base_path, extract_aug_batch
 from utils.timi_tts_constants import AUDIO_KEY, CLASS_KEY, LABELS_MAP, ORIGINAL_SPEC_KEY
 
 
@@ -117,8 +117,7 @@ class SyntheticClassifier(pl.LightningModule):
                 self.training_set = LoadTimiDataset(base_path=self.dataset_base_path,
                                                     metadata_file_path=self.metadata_file, partition="training",
                                                     model_name=self.model_name,
-                                                    transform=True, is_validation_enabled=self.is_validation_enabled,
-                                                    mode=self.mode, is_augment_enabled=self.is_augment_enabled)
+                                                    transform=True, is_validation_enabled=self.is_validation_enabled)
                 if self.is_validation_enabled:
                     self.validation_set = LoadTimiDataset(base_path=self.dataset_base_path,
                                                           metadata_file_path=self.metadata_file,
@@ -128,28 +127,26 @@ class SyntheticClassifier(pl.LightningModule):
             elif self.dataset == "asv19":
                 self.training_set = LoadAsvSpoof19(base_path=self.dataset_base_path, partition="training",
                                                    model_name=self.model_name,
-                                                   is_validation_enabled=self.is_validation_enabled,
-                                                   mode=self.mode, transform=True,
+                                                   transform=True,
                                                    is_augment_enabled=self.is_augment_enabled,
                                                    extract_manual_spec=self.extract_manual_spec)
                 if self.is_validation_enabled:
                     self.validation_set = LoadAsvSpoof19(base_path=self.dataset_base_path,
                                                          partition="validation",
                                                          model_name=self.model_name,
-                                                         mode=self.mode, transform=True,
+                                                         transform=True,
                                                          extract_manual_spec=self.extract_manual_spec)
             elif self.dataset == "asv19-silence":
                 self.training_set = LoadAsvSpoof19(base_path=self.dataset_base_path, partition="training",
                                                    model_name=self.model_name,
-                                                   is_validation_enabled=self.is_validation_enabled,
-                                                   mode=self.mode, transform=True,
+                                                   transform=True,
                                                    is_asv19_silence_version=True,
                                                    is_augment_enabled=self.is_augment_enabled)
                 if self.is_validation_enabled:
                     self.validation_set = LoadAsvSpoof19(base_path=self.dataset_base_path,
                                                          partition="validation",
                                                          model_name=self.model_name,
-                                                         mode=self.mode, transform=True,
+                                                         transform=True,
                                                          is_asv19_silence_version=True)
         if stage == "test" or stage is None:
             if self.dataset == "timi":
@@ -160,11 +157,11 @@ class SyntheticClassifier(pl.LightningModule):
             elif self.dataset == "asv19":
                 self.test_set = LoadAsvSpoof19(base_path=self.dataset_base_path, partition="validation",
                                                model_name=self.model_name,
-                                               mode=self.mode, transform=True)
+                                               transform=True)
             elif self.dataset == "asv19-silence":
                 self.test_set = LoadAsvSpoof19(base_path=self.dataset_base_path, partition="validation",
                                                model_name=self.model_name,
-                                               mode=self.mode, transform=True,
+                                               transform=True,
                                                is_asv19_silence_version=True)
 
     def _get_preds_loss_accuracy(self, batch, batch_idx):
@@ -233,7 +230,7 @@ class SyntheticClassifier(pl.LightningModule):
 
     def training_step(self, train_batch, batch_idx):
         if self.is_augment_enabled:
-            train_batch = LoadTimiDataset.extract_aug_batch(train_batch)
+            train_batch = extract_aug_batch(train_batch)
         x = train_batch[AUDIO_KEY]
         n = x.shape[0]
         self.global_step += n
@@ -303,15 +300,15 @@ class SyntheticClassifier(pl.LightningModule):
     def train_dataloader(self):
         return DataLoader(self.training_set, batch_size=self.batch_size,
                           # sampler=BalancedBatchSampler(self.training_set, torch.Tensor(all_items)),
-                          shuffle=False, num_workers=4,
+                          shuffle=False, num_workers=1,
                           pin_memory=self.is_gpu_enabled)
 
     def val_dataloader(self):
-        return DataLoader(self.validation_set, batch_size=self.batch_size, shuffle=False, num_workers=4,
+        return DataLoader(self.validation_set, batch_size=self.batch_size, shuffle=False, num_workers=1,
                           pin_memory=self.is_gpu_enabled)
 
     def test_dataloader(self):
-        return DataLoader(self.test_set, batch_size=self.batch_size, shuffle=False, num_workers=4,
+        return DataLoader(self.test_set, batch_size=self.batch_size, shuffle=False, num_workers=1,
                           pin_memory=self.is_gpu_enabled)
 
 
@@ -322,25 +319,26 @@ class _EarlyStopping(EarlyStopping, pl.Callback):
 
 if __name__ == '__main__':
     isPretrained = True
+    isValidationEnabled = True
+    is_augment_enabled = False
+    extract_manual_spec = False
+    isGpuEnabled = False
     optimizer = "Adam"
+    epochs = 25
     lr = 0.001
     decay = 0.00008
     batch_size = 32
     mode = "normal"
-    metadata_file = "aug_reduced.csv"
-    # model_name = "resnet50"
+    metadata_file = "aug_reduced.csv"  # change to load different TIMIT data (clean, aug, clean_reduced..)
+    # model_name = "attVgg16"
     model_name = "passt"
-    isValidationEnabled = True
-    is_augment_enabled = True
-    extract_manual_spec = False
-    dataset = "asv19"
-    epochs = 25
-    infos = ""
+    # dataset = "asv19"
+    dataset = "timi"
+
     n_classes_timi = 2 if mode == "reduced" else 12
     n_classes = 7 if dataset == "asv19" or dataset == "asv19-silence" else n_classes_timi
-    os.environ["WANDB_MODE"] = "offline"
 
-    isGpuEnabled = False
+    os.environ["WANDB_MODE"] = "offline"  # comment this line to enable wandb cloud logging
 
     classifier = SyntheticClassifier(metadata_file=metadata_file, model_name=model_name, pretrained=isPretrained, lr=lr,
                                      decay=decay,

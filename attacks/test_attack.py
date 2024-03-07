@@ -165,7 +165,7 @@ if __name__ == "__main__":
     # set True to test the attack on N_SAMPLES of each class, separately
     test_attack_on_all_classes = True
     # plot the spectrogram of the CLEAN and AUGMENTED audio
-    should_print_specs = True
+    should_print_specs = False
     # set true to test the fixed model (i.e. the model trained on the attacked dataset)
     test_fixed_model = False
 

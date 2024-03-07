@@ -7,8 +7,7 @@ import warnings
 from copy import deepcopy
 
 import torch
-from timm.models import load_custom_pretrained
-from timm.models.helpers import load_pretrained
+from timm.models.helpers import load_pretrained, load_custom_pretrained
 from torch import nn
 
 
