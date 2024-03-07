@@ -32,7 +32,6 @@ class SyntheticClassifier(pl.LightningModule):
                  decay: float = 0.00002, momentum: float = 0.99, batch_size: int = 128,
                  optimizer: str = "SGD",
                  is_gpu_enabled: bool = False,
-                 mode: Literal["normal", "reduced"] = "normal",
                  is_augment_enabled: bool = False,
                  freezed: bool = False,
                  dataset: Literal["timi", "asv19", "asv19-silence"] = "timi",
@@ -44,7 +43,6 @@ class SyntheticClassifier(pl.LightningModule):
         self.return_attentions = return_attentions
         self.dataset = dataset
         self.dataset_base_path = get_dataset_base_path(self.dataset)
-        self.mode = mode
         self.metadata_file = metadata_file
         self.freezed = freezed
         self.is_augment_enabled = is_augment_enabled
@@ -89,7 +87,7 @@ class SyntheticClassifier(pl.LightningModule):
             backbone.net = get_model_passt(arch="passt_s_swa_p16_128_ap476", n_classes=self.n_classes,
                                            pretrained=self.pretrained)
         else:
-            raise Exception("Unsupported model ", self.mode)
+            raise Exception("Unsupported model ", self.model)
         return backbone
 
     def configure_optimizers(self):
@@ -273,7 +271,7 @@ class SyntheticClassifier(pl.LightningModule):
             cm = wandb.plot.confusion_matrix(
                 y_true=y_true,
                 probs=probs,
-                class_names=["glowtts", "fastpitch"] if self.mode == "reduced" else all_class_names
+                class_names=all_class_names
             )
         else:
             cm = wandb.plot.confusion_matrix(

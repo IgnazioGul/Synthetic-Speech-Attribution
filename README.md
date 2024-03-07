@@ -75,6 +75,14 @@ Finally, install the dependencies:
 pip install -r requirements.txt
 ```
 
+### Preprocess TIMIT-TTS labels
+
+Run the following command to preprocess the TIMIT-TTS labels:
+
+```bash
+python ./utils/timi_tts_utils.py
+```
+
 ## Usage
 
 ### Training for the SSA task

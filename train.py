@@ -7,28 +7,29 @@ import wandb
 from synthetic_classifier import SyntheticClassifier, _EarlyStopping
 
 if __name__ == '__main__':
+    # ------- BEGIN CONFIGURATION -------
     isPretrained = True
     isValidationEnabled = True
-    is_augment_enabled = False
-    extract_manual_spec = False
+    is_augment_enabled = False  # set to true to add augmented samples in the dataset used for training
+    extract_manual_spec = False  # property used only during the attack stage, so ignore it
     isGpuEnabled = False
-    optimizer = "Adam"
+
     epochs = 25
     lr = 0.001
     decay = 0.00008
     batch_size = 32
-    mode = "normal"
-    metadata_file = "aug_reduced.csv"  # change to load different TIMIT data (clean, aug, clean_reduced..)
+    optimizer = "Adam"
+
+    metadata_file = "clean.csv"  # change to load different TIMIT data (clean, aug, dtw, dwt_aug, all)
     # model_name = "attVgg16"
     model_name = "passt"
     # dataset = "asv19"
     dataset = "timi"
+    # ------- END CONFIGURATION -------
 
-    n_classes_timi = 2 if mode == "reduced" else 12
+    n_classes_timi = 12
     n_classes = 7 if dataset == "asv19" or dataset == "asv19-silence" else n_classes_timi
-
     os.environ["WANDB_MODE"] = "offline"  # comment this line to enable wandb cloud logging
-
     classifier = SyntheticClassifier(metadata_file=metadata_file, model_name=model_name, pretrained=isPretrained, lr=lr,
                                      decay=decay,
                                      batch_size=batch_size,
