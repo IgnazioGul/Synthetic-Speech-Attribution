@@ -3,7 +3,7 @@ from torch import nn
 from torch.nn import functional as F
 from torchvision import models
 
-from models.blocks.attention_block import AttentionBlock
+from models.attVgg16.attention_block import AttentionBlock
 
 
 class AttentionVgg16(nn.Module):
@@ -44,7 +44,7 @@ class AttentionVgg16(nn.Module):
             self.dpt = nn.Dropout(dropout)
         self.cls = nn.Linear(in_features=512 + 512 + 256, out_features=num_classes, bias=True)
 
-        # initialize the attention blocks defined above
+        # initialize the attention attVgg16 defined above
         self.attn1 = AttentionBlock(256, 512, 256, 4, normalize_attn=normalize_attn)
         self.attn2 = AttentionBlock(512, 512, 256, 2, normalize_attn=normalize_attn)
 

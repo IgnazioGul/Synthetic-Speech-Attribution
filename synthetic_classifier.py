@@ -16,8 +16,8 @@ from typing_extensions import Literal
 
 from dataset.load_asv_19_dataset import LoadAsvSpoof19
 from dataset.load_timi_dataset import LoadTimiDataset
-from models.attention_vgg16 import AttentionVgg16
-from models.blocks.attention_block import visualize_attention, print_original_spec
+from models.attVgg16.attention_block import visualize_attention, print_original_spec
+from models.attVgg16.attention_vgg16 import AttentionVgg16
 from models.passt.base import get_basic_model, get_model_passt
 from utils.dataset_utils import get_dataset_base_path
 from utils.timi_tts_constants import AUDIO_KEY, CLASS_KEY, LABELS_MAP, ORIGINAL_SPEC_KEY
