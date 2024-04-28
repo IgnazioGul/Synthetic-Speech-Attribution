@@ -4,7 +4,7 @@ import lightning.pytorch as pl
 from pytorch_lightning.loggers import WandbLogger
 
 import wandb
-from constants.dataset_enum import DatasetEnum
+from constants.dataset_enum import DatasetEnum, dataset_classes_map
 from constants.model_enum import ModelEnum
 from synthetic_classifier import SyntheticClassifier, _EarlyStopping
 
@@ -14,7 +14,7 @@ if __name__ == '__main__':
     isValidationEnabled = True
     is_augment_enabled = False  # set to true to add augmented samples in the dataset used for training
     extract_manual_spec = False  # property used only during the attack stage, so ignore it
-    isGpuEnabled = False
+    is_gpu_enabled = False
 
     epochs = 25
     lr = 0.001
@@ -29,14 +29,13 @@ if __name__ == '__main__':
     dataset = DatasetEnum.TIMIT_TTS.value
     # ------- END CONFIGURATION -------
 
-    n_classes_timi = 12
-    n_classes = 7 if dataset == DatasetEnum.ASV19.value or dataset == DatasetEnum.ASV19_SILENCE.value else n_classes_timi
+    n_classes = dataset_classes_map[dataset]
     os.environ["WANDB_MODE"] = "offline"  # comment this line to enable wandb cloud logging
     classifier = SyntheticClassifier(metadata_file=metadata_file, model_name=model_name, pretrained=isPretrained, lr=lr,
                                      decay=decay,
                                      batch_size=batch_size,
                                      optimizer=optimizer,
-                                     is_gpu_enabled=isGpuEnabled,
+                                     is_gpu_enabled=is_gpu_enabled,
                                      is_augment_enabled=is_augment_enabled,
                                      is_validation_enabled=isValidationEnabled,
                                      dataset=dataset,
@@ -59,7 +58,7 @@ if __name__ == '__main__':
         logger=logger,
         max_epochs=epochs,
         log_every_n_steps=1,
-        accelerator="gpu" if isGpuEnabled else "cpu",
+        accelerator="gpu" if is_gpu_enabled else "cpu",
         devices="auto",
         # max_time="00:08:00:00",
         callbacks=[early_stop_callback],
